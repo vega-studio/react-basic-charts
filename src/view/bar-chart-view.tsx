@@ -24,6 +24,7 @@ import { BarChartAction } from "src/action";
 import { BarChartStore } from "src/store";
 import { observer } from "mobx-react";
 import { DEFAULT_RESOURCES } from "src/types";
+import Draggable from "react-draggable";
 
 const { random } = Math;
 
@@ -35,30 +36,34 @@ export interface IBarCharViewProps {
 @observer export class BarChartView extends Component<IBarCharViewProps> {
   action: BarChartAction;
   store: BarChartStore;
-
-  testProvider = {
-    rectangles: new InstanceProvider<RectangleInstance>(),
-    labels: new InstanceProvider<LabelInstance>(),
-    lines: new InstanceProvider<EdgeInstance>()
-  }
+  mainCamera: Camera2D = new Camera2D();
 
   constructor(props: IBarCharViewProps) {
     super(props);
     this.action = props.action;
     this.store = props.store;
+    this.testHandler = this.testHandler.bind(this);
   }
 
   componentDidMount() {
     const container: React.ReactInstance = this.refs.container;
     this.makeSurface(container as HTMLElement);
+
+    window.onresize = this.resize;
   }
 
   componentWillUnmount() {
 
   }
 
-  testHandler() {
+  testHandler(e: React.MouseEvent) {
     console.warn("test");
+    const offset = this.mainCamera.offset;
+    this.mainCamera.control2D.setOffset([offset[0] + 10, offset[1], offset[2]]);
+  }
+
+  resize() {
+    console.warn('widht', window.innerWidth, 'height', window.innerHeight);
   }
 
   async makeSurface(container: HTMLElement) {
@@ -66,22 +71,22 @@ export interface IBarCharViewProps {
       container,
       providers: this.store.providers,
       cameras: {
-        main: new Camera2D()
+        main: this.mainCamera
       },
       resources: {
         font: DEFAULT_RESOURCES.font
       },
       eventManagers: cameras => ({
         controller: new BasicCamera2DController({
-          camera: cameras.main,
-          startView: "main.main"
+          camera: cameras.main
         })
       }),
       scenes: (resources, providers, cameras) => ({
+        resources: [],
         scenes: {
           main: {
             views: {
-              main: createView(View2D, {
+              start: createView(View2D, {
                 camera: cameras.main,
                 background: [0, 0, 0, 1],
                 clearFlags: [ClearFlags.COLOR, ClearFlags.DEPTH]
@@ -98,9 +103,9 @@ export interface IBarCharViewProps {
                 picking: PickType.SINGLE,
                 onMouseOver: (info: IPickInfo<LabelInstance>) => {
                   console.warn('label', info);
-                },
+                }
               }),
-              createLayer(RectangleLayer, {
+              /*createLayer(RectangleLayer, {
                 animate: {
                   color: AutoEasingMethod.easeInOutCubic(300),
                   location: AutoEasingMethod.easeInOutCubic(500)
@@ -110,12 +115,25 @@ export interface IBarCharViewProps {
                 picking: PickType.SINGLE,
                 onMouseOver: this.action.mouseOverRecHandler,
                 onMouseOut: this.action.mouseOutRecHandler,
+              }),*/
+              createLayer(EdgeLayer, {
+                animate: {
+                  startColor: AutoEasingMethod.easeInOutCubic(300),
+                  endColor: AutoEasingMethod.easeInOutCubic(300),
+                  end: AutoEasingMethod.easeInOutCubic(500)
+                },
+                data: providers.recLines,
+                key: `recLines`,
+                picking: PickType.SINGLE,
+                type: EdgeType.LINE,
+                onMouseOver: this.action.mouseOverRecLineHandler,
+                onMouseOut: this.action.mouseOutRecLineHandler,
               }),
               createLayer(EdgeLayer, {
                 data: providers.lines,
                 key: `lines`,
                 type: EdgeType.LINE,
-                picking: PickType.SINGLE
+                picking: PickType.SINGLE,
               }),
             ]
           }
@@ -128,11 +146,10 @@ export interface IBarCharViewProps {
   }
 
   render() {
-    const styles = {
-      width: '100%',
-      height: '100%'
-    }
-
-    return <div ref='container' style={styles}></div>;
+    return <div
+      ref='container'
+      style={{ width: '100%', height: '100%' }}
+      onMouseDown={this.testHandler}
+    ></div>;
   }
 }

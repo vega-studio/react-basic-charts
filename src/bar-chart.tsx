@@ -11,6 +11,12 @@ export interface IBarChartProps {
   data: BarType[];
   width: number;
   height: number;
+  padding: {
+    left: number | string;
+    right: number | string;
+    top: number | string;
+    bottom: number | string;
+  }
   origin: [number, number];
 
   labelFont: string;
@@ -23,6 +29,9 @@ export interface IBarChartProps {
 export class BarChart extends Component<IBarChartProps>{
   store: BarChartStore;
   action: BarChartAction;
+
+  width: number;
+  height: number;
 
   constructor(props: IBarChartProps) {
     super(props);
@@ -40,6 +49,13 @@ export class BarChart extends Component<IBarChartProps>{
     const barNumber = barData.length;
 
     // Width
+    const leftPadding = props.padding.left;
+    if (typeof leftPadding === 'number') {
+
+    } else if (typeof leftPadding === 'string') {
+      console.warn("left padding", Number.parseFloat(leftPadding));
+      console.warn("padding", leftPadding.trim().charAt(leftPadding.trim().length - 1))
+    }
     const width = props.width;
     const shrink = 0.8;
     const barWidth = width / barNumber;

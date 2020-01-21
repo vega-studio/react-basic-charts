@@ -1,5 +1,5 @@
 import { BarChartStore } from "../store";
-import { IPickInfo, RectangleInstance, LabelInstance } from "deltav";
+import { IPickInfo, RectangleInstance, LabelInstance, EdgeInstance } from "deltav";
 
 export class BarChartAction {
   store: BarChartStore;
@@ -21,6 +21,28 @@ export class BarChartAction {
       const bar = this.store.rectangleToBar.get(instance);
       if (bar) {
         instance.color = bar.color;
+        bar.label.color = [0.8, 0.8, 0.8, 1];
+      }
+    });
+  }
+
+  mouseOverRecLineHandler = (info: IPickInfo<EdgeInstance>) => {
+    info.instances.forEach(instance => {
+      instance.setColor([1, 1, 1, 1]); // set a highlight color
+      instance.end = [instance.end[0], instance.end[1] - 20];
+      //instance.size = [instance.size[0], instance.size[1] + 20];
+      const bar = this.store.recLineToBar.get(instance);
+      if (bar) {
+        bar.label.color = [1, 1, 1, 1];
+      }
+    });
+  }
+
+  mouseOutRecLineHandler = (info: IPickInfo<EdgeInstance>) => {
+    info.instances.forEach(instance => {
+      const bar = this.store.recLineToBar.get(instance);
+      if (bar) {
+        instance.setColor(bar.color);
         bar.label.color = [0.8, 0.8, 0.8, 1];
       }
     });

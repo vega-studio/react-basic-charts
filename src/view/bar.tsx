@@ -1,4 +1,4 @@
-import { RectangleInstance, LabelInstance } from "deltav";
+import { RectangleInstance, LabelInstance, EdgeInstance } from "deltav";
 
 export interface IBarOptions {
   height: number;
@@ -13,6 +13,7 @@ export class Bar {
   value: number;
   color: [number, number, number, number];
   rectangle: RectangleInstance;
+  recLine: EdgeInstance;
   label: LabelInstance;
 
   constructor(options: IBarOptions) {
