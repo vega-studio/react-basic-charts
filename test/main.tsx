@@ -37,17 +37,14 @@ function start() {
   ReactDOM.render(
     <BarChart
       data={barData}
-      width={window.innerWidth * 0.8}
-      height={window.innerHeight * 0.8}
       padding={
         {
-          left: "20%",
-          right: 1,
-          top: 1,
-          bottom: 1
+          left: "2%",
+          right: "2%",
+          top: "2%",
+          bottom: "5%"
         }
       }
-      origin={[window.innerWidth * 0.1, window.innerHeight * 0.9]}
       labelFont="font"
       labelColor={[1, 1, 1, 1]}
       lineColor={[1, 1, 1, 1]}

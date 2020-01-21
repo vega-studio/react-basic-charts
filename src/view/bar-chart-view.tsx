@@ -25,6 +25,7 @@ import { BarChartStore } from "src/store";
 import { observer } from "mobx-react";
 import { DEFAULT_RESOURCES } from "src/types";
 import Draggable from "react-draggable";
+import { number } from "prop-types";
 
 const { random } = Math;
 
@@ -42,14 +43,16 @@ export interface IBarCharViewProps {
     super(props);
     this.action = props.action;
     this.store = props.store;
+    window.onresize = this.resize.bind(this);
     this.testHandler = this.testHandler.bind(this);
   }
 
   componentDidMount() {
     const container: React.ReactInstance = this.refs.container;
+    const element = container as HTMLElement;
+    console.warn("client width", element.clientWidth);
     this.makeSurface(container as HTMLElement);
-
-    window.onresize = this.resize;
+    
   }
 
   componentWillUnmount() {
@@ -63,7 +66,9 @@ export interface IBarCharViewProps {
   }
 
   resize() {
-    console.warn('widht', window.innerWidth, 'height', window.innerHeight);
+    console.warn('width', window.innerWidth, 'height', window.innerHeight);
+    console.warn(this.store);
+    this.store.resize(window.innerWidth, window.innerHeight);
   }
 
   async makeSurface(container: HTMLElement) {
