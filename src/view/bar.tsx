@@ -1,4 +1,5 @@
 import { RectangleInstance, LabelInstance, EdgeInstance } from "deltav";
+import { observable, computed } from "mobx";
 
 export interface IBarOptions {
   labelText: string;
@@ -8,7 +9,7 @@ export interface IBarOptions {
 
 export class Bar {
   labelText: string;
-  value: number;
+  private _value: number;
   color: [number, number, number, number];
   rectangle: RectangleInstance;
   recLine: EdgeInstance;
@@ -16,7 +17,23 @@ export class Bar {
 
   constructor(options: IBarOptions) {
     this.labelText = options.labelText;
-    this.value = options.value;
+    this._value = options.value;
     this.color = options.color;
+  }
+
+  get value() {
+    return this._value
+  }
+
+  set value(val: number) {
+    if (this.recLine) {
+      const start = this.recLine.start;
+      const end = this.recLine.end;
+      const height = start[1] - end[1];
+      const newH = height * val / this._value;
+      this.recLine.end = [end[0], start[1] - newH];
+    }
+
+    this._value = val;
   }
 }

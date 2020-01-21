@@ -1,33 +1,25 @@
 import React, { Component } from "react";
 import {
   BasicSurface,
-  InstanceProvider,
   Camera2D,
   BasicCamera2DController,
   createView,
   View2D,
   ClearFlags,
   createLayer,
-  RectangleLayer,
   EdgeLayer,
   EdgeType,
   LabelLayer,
   IPickInfo,
-  RectangleInstance,
   PickType,
   LabelInstance,
-  EdgeInstance,
   AutoEasingMethod,
-  AutoEasingLoopStyle
 } from "deltav";
 import { BarChartAction } from "src/action";
 import { BarChartStore } from "src/store";
 import { observer } from "mobx-react";
 import { DEFAULT_RESOURCES } from "src/types";
-import Draggable from "react-draggable";
-import { number } from "prop-types";
-
-const { random } = Math;
+import * as dat from "dat.gui";
 
 export interface IBarCharViewProps {
   action: BarChartAction;
@@ -39,6 +31,12 @@ export interface IBarCharViewProps {
   store: BarChartStore;
   mainCamera: Camera2D = new Camera2D();
 
+  parameters = {
+    changeRandom: () => {
+      this.action.changeRandom();
+    }
+  }
+
   constructor(props: IBarCharViewProps) {
     super(props);
     this.action = props.action;
@@ -49,10 +47,9 @@ export interface IBarCharViewProps {
 
   componentDidMount() {
     const container: React.ReactInstance = this.refs.container;
-    const element = container as HTMLElement;
-    console.warn("client width", element.clientWidth);
+    this.buildConsole();
     this.makeSurface(container as HTMLElement);
-    
+
   }
 
   componentWillUnmount() {
@@ -63,6 +60,11 @@ export interface IBarCharViewProps {
     console.warn("test");
     const offset = this.mainCamera.offset;
     this.mainCamera.control2D.setOffset([offset[0] + 10, offset[1], offset[2]]);
+  }
+
+  buildConsole() {
+    const ui = new dat.GUI();
+    ui.add(this.parameters, "changeRandom");
   }
 
   resize() {

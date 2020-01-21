@@ -52,6 +52,18 @@ export class BarChartStore {
     this.init(options);
   }
 
+  setMaxValue(val: number) {
+    if (val > this.maxValue) {
+      this.recLines.forEach(recLine => {
+        const height = recLine.end[1] - recLine.start[1];
+        const newHeight = height * this.maxValue / val;
+        recLine.end = [recLine.end[0], recLine.start[1] + newHeight];
+      });
+
+      this.maxValue = val;
+    }
+  }
+
   resize(width: number, height: number) {
     this.width = width;
     this.height = height;
@@ -95,7 +107,7 @@ export class BarChartStore {
       barData,
       padding,
       width,
-      height, 
+      height,
       maxValue
     } = options;
 

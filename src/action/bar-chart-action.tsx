@@ -7,8 +7,6 @@ export class BarChartAction {
   mouseOverRecHandler = (info: IPickInfo<RectangleInstance>) => {
     info.instances.forEach(instance => {
       instance.color = [1, 1, 1, 1]; // set a highlight color
-      instance.position = [instance.position[0], instance.position[1] - 20];
-      instance.size = [instance.size[0], instance.size[1] + 20];
       const bar = this.store.rectangleToBar.get(instance);
       if (bar) {
         bar.label.color = [1, 1, 1, 1];
@@ -29,7 +27,7 @@ export class BarChartAction {
   mouseOverRecLineHandler = (info: IPickInfo<EdgeInstance>) => {
     info.instances.forEach(instance => {
       instance.setColor([1, 1, 1, 1]); // set a highlight color
-      instance.end = [instance.end[0], instance.end[1] - 20];
+      //instance.end = [instance.end[0], instance.end[1] - 20];
       //instance.size = [instance.size[0], instance.size[1] + 20];
       const bar = this.store.recLineToBar.get(instance);
       if (bar) {
@@ -67,5 +65,20 @@ export class BarChartAction {
         bar.rectangle.color = bar.color;
       }
     });
+  }
+
+  changeRandom() {
+    setInterval(() => {
+      const index = Math.floor(Math.random() * this.store.bars.length);
+      const bar = this.store.bars[index];
+      const newValue = bar.value + 500 * Math.random();
+
+      if (newValue > this.store.maxValue) {
+        this.store.setMaxValue(newValue);
+      }
+
+      bar.value = newValue;
+    })
+
   }
 }
