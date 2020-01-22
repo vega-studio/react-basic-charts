@@ -1,5 +1,6 @@
 import { InstanceProvider, CircleInstance, RectangleInstance, LabelInstance, EdgeInstance, AnchorType } from "deltav";
 import { Bar } from "../view/bar";
+import { observable, reaction } from "mobx";
 
 export interface IBarChartStoreOptions {
   barData: Bar[];
@@ -15,8 +16,8 @@ export interface IBarChartStoreOptions {
 }
 
 export class BarChartStore {
-  bars: Bar[];
-  recLines: EdgeInstance[];
+  @observable bars: Bar[];
+  @observable recLines: EdgeInstance[];
   labels: LabelInstance[];
   verticalLine: EdgeInstance;
   horizonLine: EdgeInstance;
@@ -50,6 +51,90 @@ export class BarChartStore {
     this.maxValue = options.maxValue;
     this.padding = options.padding;
     this.init(options);
+
+    reaction(
+      () => this.bars.length > this.recLines.length,
+      () => this.addNewBars()
+    )
+  }
+
+  addNewBars() {
+    console.log("Begin adding new bars");
+    const oldNumber = this.recLines.length;
+    const newNumber = this.bars.length;
+
+    // maxValue
+    for(let i = oldNumber; i < newNumber; i++) {
+      const bar = this.bars[i];
+      if(bar.value > this.maxValue) this.maxValue = bar.value;
+    }
+
+    // Move old ones
+    const {
+      width,
+      height,
+      padding,
+      maxValue
+    } = this;
+
+    const lp = padding.left > 1 ? padding.left : padding.left * width;
+    const rp = padding.right > 1 ? padding.right : padding.right * width;
+    const tp = padding.top > 1 ? padding.top : padding.top * height;
+    const bp = padding.bottom > 1 ? padding.bottom : padding.bottom * height;
+
+    const w = width - lp - rp;
+    const h = height - tp - bp;
+
+    const origin: [number, number] = [lp, height - bp];
+
+    const barWidth = w / this.bars.length;
+    const barRecWidth = 0.8 * barWidth;
+
+    this.recLines.forEach((recLine, i) => {
+      recLine.start = [origin[0] + (i + 0.5) * barWidth, origin[1]];
+      recLine.end = [origin[0] + (i + 0.5) * barWidth, origin[1] - this.bars[i].value * h / maxValue];
+      recLine.thickness = [barRecWidth, barRecWidth];
+    });
+
+    this.labels.forEach((label, i) => {
+      label.origin = [origin[0] + (i + 0.5) * barWidth, origin[1] + 10];
+    })
+
+    // Generate new ones
+    for(let i = oldNumber; i < newNumber; i++) {
+      const bar = this.bars[i];
+      const recLine = new EdgeInstance({
+        startColor: bar.color,
+        endColor: bar.color,
+        start: [origin[0] + (i + 0.5) * barWidth, origin[1]],
+        end: [origin[0] + (i + 0.5) * barWidth, origin[1] - bar.value * h / maxValue],
+        thickness: [barRecWidth, barRecWidth]
+      })
+
+      this.providers.recLines.add(recLine);
+      bar.recLine = recLine;
+      this.recLineToBar.set(recLine, bar);
+      this.recLines.push(recLine);
+
+      // labels
+      const label = new LabelInstance({
+        depth: 2,
+        origin: [origin[0] + (i + 0.5) * barWidth, origin[1] + 10],
+        text: bar.labelText,
+        color: [0.8, 0.8, 0.8, 1],
+        fontSize: 16,
+        anchor: {
+          type: AnchorType.TopMiddle,
+          padding: 0
+        }
+      });
+
+      this.providers.labels.add(label);
+      bar.label = label;
+      this.labelToBar.set(label, bar);
+      this.labels.push(label);
+    }
+
   }
 
   setMaxValue(val: number) {

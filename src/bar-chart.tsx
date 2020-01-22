@@ -5,6 +5,9 @@ import { BarChartAction } from "./action";
 import { Color } from "deltav";
 import { BarType } from "./types";
 import { Bar } from "./view/bar";
+import * as dat from "dat.gui";
+import { observable, when, reaction } from "mobx";
+
 
 function parsePadding(val: number | string) {
   if (typeof val === 'number') {
@@ -43,20 +46,62 @@ export class BarChart extends Component<IBarChartProps>{
   width: number;
   height: number;
 
+  @observable barData: BarType[];
+  @observable barNumber: number;
+
+  parameters = {
+    changeRandom: () => {
+      this.action.changeRandom();
+    },
+    addNew: () => {
+      this.barData.push({
+        value: 100 + 500 * Math.random(),
+        color: [Math.random(), Math.random(), Math.random(), 1],
+        label: "test"
+      })
+    }
+  }
+
   constructor(props: IBarChartProps) {
     super(props);
 
     this.action = new BarChartAction();
     this.init(props);
+
+    reaction(
+      () => this.barData.length > this.barNumber, 
+      () => this.addNewData()
+    )
+  }
+
+  addNewData() {
+    console.warn("new data added", this.barData.length, this.barNumber);
+
+    for(let i = this.barNumber, endi = this.barData.length; i < endi; i++) {
+      const data = this.barData[i];
+      this.store.bars.push(new Bar({
+        value: data.value,
+        labelText: data.label,
+        color: data.color
+      }))
+    }
+
+    this.barNumber = this.barData.length;
   }
 
   componentDidMount() {
+    this.buildConsole();
+  }
 
+  buildConsole() {
+    const ui = new dat.GUI();
+    ui.add(this.parameters, "changeRandom");
+    ui.add(this.parameters, "addNew");
   }
 
   init(props: IBarChartProps) {
-    const barData = props.data;
-    const barNumber = barData.length;
+    this.barData = props.data;
+    this.barNumber = this.barData.length;
     
     // Width
     const leftPadding = parsePadding(props.padding.left);
@@ -66,13 +111,13 @@ export class BarChart extends Component<IBarChartProps>{
     
     // Height
     let maxValue = 0;
-    barData.forEach(d => maxValue = Math.max(d.value, maxValue));
+    this.barData.forEach(d => maxValue = Math.max(d.value, maxValue));
 
     // Bars
     const bars: Bar[] = [];
 
-    for (let i = 0; i < barNumber; i++) {
-      const bar = barData[i];
+    for (let i = 0; i < this.barNumber; i++) {
+      const bar = this.barData[i];
       bars.push(new Bar({
         labelText: bar.label,
         value: bar.value,
