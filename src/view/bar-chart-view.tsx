@@ -53,7 +53,7 @@ export interface IBarCharViewProps {
     this.mainCamera.control2D.setOffset([offset[0] + 10, offset[1], offset[2]]);
   }
 
-  
+
 
   resize() {
     console.warn('width', window.innerWidth, 'height', window.innerHeight);
@@ -115,7 +115,9 @@ export interface IBarCharViewProps {
                 animate: {
                   startColor: AutoEasingMethod.easeInOutCubic(300),
                   endColor: AutoEasingMethod.easeInOutCubic(300),
-                  end: AutoEasingMethod.easeInOutCubic(500)
+                  start: AutoEasingMethod.easeInOutCubic(500),
+                  end: AutoEasingMethod.easeInOutCubic(500),
+                  thickness: AutoEasingMethod.easeInOutCubic(300)
                 },
                 data: providers.recLines,
                 key: `recLines`,

@@ -14,9 +14,9 @@ function parsePadding(val: number | string) {
     return val;
   } else if (typeof val === 'string') {
     const perTester = /^\d+(\.\d+)?%$/;
-    if(perTester.test(val)) {
+    if (perTester.test(val)) {
       return Number.parseFloat(val) / 100;
-    }  
+    }
   }
 
   return 0;
@@ -48,6 +48,7 @@ export class BarChart extends Component<IBarChartProps>{
 
   @observable barData: BarType[];
   @observable barNumber: number;
+  @observable removeIndex: number = -1;
 
   parameters = {
     changeRandom: () => {
@@ -59,6 +60,9 @@ export class BarChart extends Component<IBarChartProps>{
         color: [Math.random(), Math.random(), Math.random(), 1],
         label: "test"
       })
+    },
+    removeData: () => {
+      this.removeIndex = Math.floor(Math.random() * this.barNumber);
     }
   }
 
@@ -69,15 +73,27 @@ export class BarChart extends Component<IBarChartProps>{
     this.init(props);
 
     reaction(
-      () => this.barData.length > this.barNumber, 
+      () => this.barData.length > this.barNumber,
       () => this.addNewData()
     )
+
+    reaction(
+      () => this.removeIndex != -1,
+      () => this.removeData()
+    )
+  }
+
+  removeData() {
+    this.store.removeIndex = this.removeIndex;
+    this.barData.splice(this.removeIndex, 1);
+    this.barNumber = this.barData.length;
+    this.removeIndex = -1;
   }
 
   addNewData() {
     console.warn("new data added", this.barData.length, this.barNumber);
 
-    for(let i = this.barNumber, endi = this.barData.length; i < endi; i++) {
+    for (let i = this.barNumber, endi = this.barData.length; i < endi; i++) {
       const data = this.barData[i];
       this.store.bars.push(new Bar({
         value: data.value,
@@ -97,18 +113,19 @@ export class BarChart extends Component<IBarChartProps>{
     const ui = new dat.GUI();
     ui.add(this.parameters, "changeRandom");
     ui.add(this.parameters, "addNew");
+    ui.add(this.parameters, "removeData")
   }
 
   init(props: IBarChartProps) {
     this.barData = props.data;
     this.barNumber = this.barData.length;
-    
+
     // Width
     const leftPadding = parsePadding(props.padding.left);
     const rightPadding = parsePadding(props.padding.right);
     const topPadding = parsePadding(props.padding.top);
     const bottomPadding = parsePadding(props.padding.bottom);
-    
+
     // Height
     let maxValue = 0;
     this.barData.forEach(d => maxValue = Math.max(d.value, maxValue));

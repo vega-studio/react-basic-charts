@@ -17,7 +17,9 @@ export interface IBarChartStoreOptions {
 
 export class BarChartStore {
   @observable bars: Bar[];
+  @observable removeIndex: number = -1;
   @observable recLines: EdgeInstance[];
+
   labels: LabelInstance[];
   verticalLine: EdgeInstance;
   horizonLine: EdgeInstance;
@@ -56,6 +58,68 @@ export class BarChartStore {
       () => this.bars.length > this.recLines.length,
       () => this.addNewBars()
     )
+
+    reaction(
+      () => this.removeIndex !== -1,
+      () => this.removeBar()
+    )
+  }
+
+  removeBar() {
+    if (this.removeIndex != -1) {
+      const index = this.removeIndex;
+      this.bars.splice(index, 1);
+
+      const recline = this.recLines[index];
+      this.recLines.splice(index, 1);
+      this.providers.recLines.remove(recline);
+
+      const label = this.labels[index];
+      this.labels.splice(index, 1);
+      this.providers.labels.remove(label);
+
+      const number = this.bars.length;
+      console.warn("bar left", number);
+      let newMaxValue = 0;
+
+      // maxvalue
+      this.bars.forEach(bar => newMaxValue = Math.max(newMaxValue, bar.value));
+      this.maxValue = newMaxValue;
+
+      // updata existed ones
+      const {
+        width,
+        height,
+        padding,
+        maxValue
+      } = this;
+
+      const lp = padding.left > 1 ? padding.left : padding.left * width;
+      const rp = padding.right > 1 ? padding.right : padding.right * width;
+      const tp = padding.top > 1 ? padding.top : padding.top * height;
+      const bp = padding.bottom > 1 ? padding.bottom : padding.bottom * height;
+
+      const w = width - lp - rp;
+      const h = height - tp - bp;
+
+      const origin: [number, number] = [lp, height - bp];
+
+      const barWidth = w / this.bars.length;
+      const barRecWidth = 0.8 * barWidth;
+
+      this.recLines.forEach((recLine, i) => {
+        recLine.start = [origin[0] + (i + 0.5) * barWidth, origin[1]];
+        recLine.end = [origin[0] + (i + 0.5) * barWidth, origin[1] - this.bars[i].value * h / maxValue];
+        recLine.thickness = [barRecWidth, barRecWidth];
+      });
+
+      this.labels.forEach((label, i) => {
+        label.origin = [origin[0] + (i + 0.5) * barWidth, origin[1] + 10];
+      })
+
+      this.removeIndex = -1;
+    }
+
   }
 
   addNewBars() {
@@ -64,9 +128,9 @@ export class BarChartStore {
     const newNumber = this.bars.length;
 
     // maxValue
-    for(let i = oldNumber; i < newNumber; i++) {
+    for (let i = oldNumber; i < newNumber; i++) {
       const bar = this.bars[i];
-      if(bar.value > this.maxValue) this.maxValue = bar.value;
+      if (bar.value > this.maxValue) this.maxValue = bar.value;
     }
 
     // Move old ones
@@ -101,7 +165,7 @@ export class BarChartStore {
     })
 
     // Generate new ones
-    for(let i = oldNumber; i < newNumber; i++) {
+    for (let i = oldNumber; i < newNumber; i++) {
       const bar = this.bars[i];
       const recLine = new EdgeInstance({
         startColor: bar.color,
