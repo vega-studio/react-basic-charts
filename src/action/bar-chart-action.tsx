@@ -1,8 +1,10 @@
 import { BarChartStore } from "../store";
 import { IPickInfo, RectangleInstance, LabelInstance, EdgeInstance } from "deltav";
+import { Bar } from "src/view/bar";
 
 export class BarChartAction {
   store: BarChartStore;
+  timer: number;
 
   mouseOverRecHandler = (info: IPickInfo<RectangleInstance>) => {
     info.instances.forEach(instance => {
@@ -47,7 +49,6 @@ export class BarChartAction {
   }
 
   mouseOverLabelHandler = (info: IPickInfo<LabelInstance>) => {
-    console.warn("mouse over label");
     info.instances.forEach(instance => {
       instance.color = [1, 1, 1, 1]; // set a highlight color
       const bar = this.store.labelToBar.get(instance);
@@ -68,9 +69,11 @@ export class BarChartAction {
   }
 
   changeRandom() {
-    setInterval(() => {
-      const index = Math.floor(Math.random() * this.store.bars.length);
-      const bar = this.store.bars[index];
+    this.timer = setInterval(() => {
+      const index = Math.floor(Math.random() * this.store.idToBar.size);
+      const bars: Bar[] = [];
+      this.store.idToBar.forEach(bar => bars.push(bar));
+      const bar = bars[index];
       const newValue = bar.value + 500 * Math.random();
 
       if (newValue > this.store.maxValue) {
@@ -80,5 +83,9 @@ export class BarChartAction {
       bar.value = newValue;
     })
 
+  }
+
+  stopeRandom() {
+    clearInterval(this.timer);
   }
 }

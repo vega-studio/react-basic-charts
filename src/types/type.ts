@@ -1,12 +1,13 @@
-import { 
-  createAtlas, 
-  createFont, 
-  WebGLStat, 
-  TextureSize, 
+import {
+  createAtlas,
+  createFont,
+  WebGLStat,
+  TextureSize,
   FontMapGlyphType
 } from "deltav";
 
 export type BarType = {
+  id?: number;
   label: string;
   value: number;
   color: [number, number, number, number];

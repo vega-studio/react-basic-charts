@@ -6,7 +6,7 @@ import { Color } from "deltav";
 import { BarType } from "./types";
 import { Bar } from "./view/bar";
 import * as dat from "dat.gui";
-import { observable, when, reaction } from "mobx";
+import { observable, reaction } from "mobx";
 
 
 function parsePadding(val: number | string) {
@@ -46,63 +46,98 @@ export class BarChart extends Component<IBarChartProps>{
   width: number;
   height: number;
 
-  @observable barData: BarType[];
-  @observable barNumber: number;
-  @observable removeIndex: number = -1;
+  barData: BarType[];
+
+  idsToAdd: number[] = [];
+  @observable addNumber: number = 0;
+
+  idsToRemove: number[] = [];
+  @observable removeNumber: number = 0;
+
+  private _id: number = 0;
 
   parameters = {
     changeRandom: () => {
       this.action.changeRandom();
     },
-    addNew: () => {
-      this.barData.push({
-        value: 100 + 500 * Math.random(),
-        color: [Math.random(), Math.random(), Math.random(), 1],
-        label: "test"
-      })
+    stopRandom: () => {
+      this.action.stopeRandom();
     },
-    removeData: () => {
-      this.removeIndex = Math.floor(Math.random() * this.barNumber);
-    }
+    barNumber: 0
   }
 
   constructor(props: IBarChartProps) {
     super(props);
 
     this.action = new BarChartAction();
+
+    reaction(
+      () => this.addNumber > 0,
+      () => this.transmitIdsToAdd()
+    )
+
+    reaction(
+      () => this.removeNumber > 0,
+      () => this.transmitIdsToRemove()
+    )
+
     this.init(props);
-
-    reaction(
-      () => this.barData.length > this.barNumber,
-      () => this.addNewData()
-    )
-
-    reaction(
-      () => this.removeIndex != -1,
-      () => this.removeData()
-    )
   }
 
-  removeData() {
-    this.store.removeIndex = this.removeIndex;
-    this.barData.splice(this.removeIndex, 1);
-    this.barNumber = this.barData.length;
-    this.removeIndex = -1;
+  get newId() {
+    return this._id++;
   }
 
-  addNewData() {
-    console.warn("new data added", this.barData.length, this.barNumber);
+  addDatas(num: number) {
+    for (let i = 0; i < num; i++) {
+      const id = this.newId;
 
-    for (let i = this.barNumber, endi = this.barData.length; i < endi; i++) {
-      const data = this.barData[i];
-      this.store.bars.push(new Bar({
-        value: data.value,
-        labelText: data.label,
-        color: data.color
-      }))
+      this.barData.push({
+        id,
+        value: 100 + 500 * Math.random(),
+        color: [Math.random(), Math.random(), Math.random(), 1],
+        label: `test${Math.random()}`
+      })
+
+      const bar = new Bar({
+        value: 100 + 500 * Math.random(),
+        color: [Math.random(), Math.random(), Math.random(), 1],
+        labelText: `test_${id}`
+      })
+
+      this.store.appendSingleBar(id, bar);
+      this.idsToAdd.push(id);
     }
 
-    this.barNumber = this.barData.length;
+    this.addNumber = num;
+  }
+
+  removeDatas(num: number) {
+    for (let i = 0; i < num; i++) {
+      const index = Math.floor(Math.random() * this.barData.length);
+      const curLastIndex = this.barData.length - 1;
+
+      const data = this.barData[index];
+      this.barData[index] = this.barData[curLastIndex];
+      this.barData[curLastIndex] = data;
+      this.barData.pop();
+
+      this.idsToRemove.push(data.id);
+    }
+
+    this.removeNumber = num;
+  }
+
+  transmitIdsToAdd() {
+    this.store.receiveIdsToAdd(this.idsToAdd);
+    this.idsToAdd = [];
+    this.addNumber = 0;
+  }
+
+  transmitIdsToRemove() {
+    this.store.receiveIdsToRemove(this.idsToRemove);
+    this.idsToRemove = [];
+    this.removeNumber = 0;
   }
 
   componentDidMount() {
@@ -112,13 +147,20 @@ export class BarChart extends Component<IBarChartProps>{
   buildConsole() {
     const ui = new dat.GUI();
     ui.add(this.parameters, "changeRandom");
-    ui.add(this.parameters, "addNew");
-    ui.add(this.parameters, "removeData")
+    ui.add(this.parameters, "stopRandom");
+    ui.add(this.parameters, "barNumber", 0, 30, 1).onFinishChange((value: number) => {
+      const curNumber = this.barData.length
+      if (value > curNumber) {
+        this.addDatas(value - curNumber);
+      } else if (value < curNumber) {
+        this.removeDatas(curNumber - value);
+      }
+    });
   }
 
   init(props: IBarChartProps) {
     this.barData = props.data;
-    this.barNumber = this.barData.length;
+    const barNumber = this.barData.length;
 
     // Width
     const leftPadding = parsePadding(props.padding.left);
@@ -126,26 +168,8 @@ export class BarChart extends Component<IBarChartProps>{
     const topPadding = parsePadding(props.padding.top);
     const bottomPadding = parsePadding(props.padding.bottom);
 
-    // Height
-    let maxValue = 0;
-    this.barData.forEach(d => maxValue = Math.max(d.value, maxValue));
-
-    // Bars
-    const bars: Bar[] = [];
-
-    for (let i = 0; i < this.barNumber; i++) {
-      const bar = this.barData[i];
-      bars.push(new Bar({
-        labelText: bar.label,
-        value: bar.value,
-        color: bar.color
-      }))
-    }
-
     // Labels follow bars
     this.store = new BarChartStore({
-      maxValue,
-      barData: bars,
       padding: {
         left: leftPadding,
         right: rightPadding,
@@ -155,6 +179,23 @@ export class BarChart extends Component<IBarChartProps>{
       width: window.innerWidth,
       height: window.innerHeight
     });
+
+    for (let i = 0; i < barNumber; i++) {
+      const id = this.newId;
+      const d = this.barData[i];
+      d.id = id;
+      const bar = new Bar({
+        labelText: d.label,
+        value: d.value,
+        color: d.color
+      });
+
+      this.store.appendSingleBar(id, bar);
+      this.idsToAdd.push(id);
+    }
+
+    this.addNumber = barNumber;
+    this.parameters.barNumber = barNumber;
 
     this.action.store = this.store;
   }
