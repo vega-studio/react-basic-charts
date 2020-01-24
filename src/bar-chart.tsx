@@ -148,7 +148,7 @@ export class BarChart extends Component<IBarChartProps>{
     const ui = new dat.GUI();
     ui.add(this.parameters, "changeRandom");
     ui.add(this.parameters, "stopRandom");
-    ui.add(this.parameters, "barNumber", 0, 30, 1).onFinishChange((value: number) => {
+    ui.add(this.parameters, "barNumber", 0, 1500, 1).onFinishChange((value: number) => {
       const curNumber = this.barData.length
       if (value > curNumber) {
         this.addDatas(value - curNumber);

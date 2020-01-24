@@ -56,8 +56,6 @@ export interface IBarCharViewProps {
 
 
   resize() {
-    console.warn('width', window.innerWidth, 'height', window.innerHeight);
-    console.warn(this.store);
     this.store.resize(window.innerWidth, window.innerHeight);
   }
 

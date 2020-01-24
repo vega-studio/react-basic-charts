@@ -1,4 +1,4 @@
-import { InstanceProvider, CircleInstance, RectangleInstance, LabelInstance, EdgeInstance, AnchorType } from "deltav";
+import { InstanceProvider, CircleInstance, RectangleInstance, LabelInstance, EdgeInstance, AnchorType, EasingUtil, EdgeLayer, LabelLayer } from "deltav";
 import { Bar } from "../view/bar";
 import { observable, reaction, remove } from "mobx";
 
@@ -150,19 +150,44 @@ export class BarChartStore {
 
     const barWidth = w / length;
     const barRecWidth = 0.8 * barWidth;
-    let i = 0;
 
     // new locations
+    const allReclines: EdgeInstance[] = [];
+    const allLabels: LabelInstance[] = [];
     this.idToBar.forEach(bar => {
       const recLine = bar.recLine;
-      recLine.start = [origin[0] + (i + 0.5) * barWidth, origin[1]];
-      recLine.end = [origin[0] + (i + 0.5) * barWidth, origin[1] - bar.value * h / maxValue];
-      recLine.thickness = [barRecWidth, barRecWidth];
-
+      allReclines.push(recLine);
       const label = bar.label;
-      label.origin = [origin[0] + (i + 0.5) * barWidth, origin[1] + 10];
-      i++;
+      allLabels.push(label);
     });
+
+    allReclines.forEach((recLine, i) => {
+      const bar = this.recLineToBar.get(recLine);
+
+      if (bar) {
+        recLine.start = [origin[0] + (i + 0.5) * barWidth, origin[1]];
+        recLine.end = [origin[0] + (i + 0.5) * barWidth, origin[1] - bar.value * h / maxValue];
+        recLine.thickness = [barRecWidth, barRecWidth];
+      }
+    })
+
+    allLabels.forEach((label, i) => {
+      label.origin = [origin[0] + (i + 0.5) * barWidth, origin[1] + 10];
+    })
+
+    EasingUtil.all(
+      true,
+      allReclines,
+      [
+        EdgeLayer.attributeNames.start,
+        EdgeLayer.attributeNames.end,
+        EdgeLayer.attributeNames.thickness
+      ],
+      easing => {
+        easing.setTiming(0, 500);
+      }
+    );
+
   }
 
   addBars() {
