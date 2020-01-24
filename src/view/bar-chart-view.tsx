@@ -64,14 +64,27 @@ export interface IBarCharViewProps {
       container,
       providers: this.store.providers,
       cameras: {
-        main: this.mainCamera
+        main: new Camera2D(),
+        axis: new Camera2D(),
+        label: new Camera2D()
       },
       resources: {
         font: DEFAULT_RESOURCES.font
       },
       eventManagers: cameras => ({
         controller: new BasicCamera2DController({
-          camera: cameras.main
+          camera: cameras.main,
+          panFilter: (offset: [number, number, number]) => {
+            return [offset[0], 0, 0];
+          },
+          scaleFilter: (scale: [number, number, number]) => [scale[0], 0, 0]
+        }),
+        labelControl: new BasicCamera2DController({
+          camera: cameras.label,
+          panFilter: (offset: [number, number, number]) => {
+            return [offset[0], 0, 0];
+          },
+          scaleFilter: (_scale: [number, number, number]) => [0, 0, 0]
         })
       }),
       scenes: (resources, providers, cameras) => ({
@@ -86,29 +99,6 @@ export interface IBarCharViewProps {
               })
             },
             layers: [
-              createLayer(LabelLayer, {
-                animate: {
-                  color: AutoEasingMethod.easeInOutCubic(300)
-                },
-                data: providers.labels,
-                key: `labels`,
-                resourceKey: resources.font.key,
-                picking: PickType.SINGLE,
-                onMouseOver: (info: IPickInfo<LabelInstance>) => {
-                  console.warn('label', info);
-                }
-              }),
-              /*createLayer(RectangleLayer, {
-                animate: {
-                  color: AutoEasingMethod.easeInOutCubic(300),
-                  location: AutoEasingMethod.easeInOutCubic(500)
-                },
-                data: providers.rectangles,
-                key: `recs`,
-                picking: PickType.SINGLE,
-                onMouseOver: this.action.mouseOverRecHandler,
-                onMouseOut: this.action.mouseOutRecHandler,
-              }),*/
               createLayer(EdgeLayer, {
                 animate: {
                   startColor: AutoEasingMethod.easeInOutCubic(300),
@@ -124,6 +114,36 @@ export interface IBarCharViewProps {
                 onMouseOver: this.action.mouseOverRecLineHandler,
                 onMouseOut: this.action.mouseOutRecLineHandler,
               }),
+            ]
+          },
+          labels: {
+            views: {
+              labelView: createView(View2D, {
+                camera: cameras.label,
+              })
+            },
+            layers: [
+              createLayer(LabelLayer, {
+                animate: {
+                  color: AutoEasingMethod.easeInOutCubic(300)
+                },
+                data: providers.labels,
+                key: `labels`,
+                resourceKey: resources.font.key,
+                picking: PickType.SINGLE,
+                onMouseOver: (info: IPickInfo<LabelInstance>) => {
+                  console.warn('label', info);
+                }
+              }),
+            ]
+          },
+          axis: {
+            views: {
+              fixView: createView(View2D, {
+                camera: cameras.axis
+              })
+            },
+            layers: [
               createLayer(EdgeLayer, {
                 data: providers.lines,
                 key: `lines`,
