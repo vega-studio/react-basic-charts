@@ -35,6 +35,10 @@ export class BarChartStore {
   width: number;
   height: number;
   maxValue: number = 0;
+
+  offset: number = 0;
+  private _scale: number = 1;
+
   padding: {
     left: number;
     right: number;
@@ -90,7 +94,6 @@ export class BarChartStore {
         }
       });
 
-
       this.providers.labels.add(bar.label);
       this.labelToBar.set(bar.label, bar);
     }
@@ -102,6 +105,15 @@ export class BarChartStore {
 
   receiveIdsToAdd(ids: number[]) {
     this.idsToAdd = ids;
+  }
+
+  set scale(val: number) {
+    this._scale = Math.max(val, 0.3);
+    this.layoutBars();
+  }
+
+  get scale() {
+    return this._scale;
   }
 
   layoutLines() {
@@ -154,28 +166,46 @@ export class BarChartStore {
     // new locations
     const allReclines: EdgeInstance[] = [];
     const allLabels: LabelInstance[] = [];
+    // const labelWidths: number[] = [];
+
     this.idToBar.forEach(bar => {
       const recLine = bar.recLine;
       allReclines.push(recLine);
       const label = bar.label;
       allLabels.push(label);
+
+      const size = label.size;
+      if (!bar.width) bar.width = size[0];
     });
 
     allReclines.forEach((recLine, i) => {
       const bar = this.recLineToBar.get(recLine);
+      // console.warn("index", i);
 
       if (bar) {
-        recLine.start = [origin[0] + (i + 0.5) * barWidth, origin[1]];
-        recLine.end = [origin[0] + (i + 0.5) * barWidth, origin[1] - bar.value * h / maxValue];
-        recLine.thickness = [barRecWidth, barRecWidth];
+        // console.warn('has bar');
+        recLine.start = [origin[0] + (i + 0.5) * barWidth * this._scale, origin[1]];
+        recLine.end = [origin[0] + (i + 0.5) * barWidth * this._scale, origin[1] - bar.value * h / maxValue];
+        recLine.thickness = [barRecWidth * this._scale, barRecWidth * this._scale];
       }
     })
 
     allLabels.forEach((label, i) => {
-      label.origin = [origin[0] + (i + 0.5) * barWidth, origin[1] + 10];
+      label.origin = [origin[0] + (i + 0.5) * barWidth * this._scale, origin[1] + 10];
+      const bar = this.labelToBar.get(label);
+
+      if (bar) {
+        if (bar.width > barWidth * this.scale) {
+          console.warn('pillow', label.scale);
+
+          label.text = bar.labelText.substring(0, 3);
+        } else {
+          label.text = bar.labelText;
+        }
+      }
     })
 
-    EasingUtil.all(
+    /*EasingUtil.all(
       true,
       allReclines,
       [
@@ -187,6 +217,17 @@ export class BarChartStore {
         easing.setTiming(0, 500);
       }
     );
+
+    EasingUtil.all(
+      true,
+      allLabels,
+      [
+        "origin"
+      ],
+      easing => {
+        easing.setTiming(0, 500);
+      }
+    );*/
 
   }
 

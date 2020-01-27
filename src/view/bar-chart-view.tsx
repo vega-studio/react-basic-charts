@@ -75,16 +75,32 @@ export interface IBarCharViewProps {
         controller: new BasicCamera2DController({
           camera: cameras.main,
           panFilter: (offset: [number, number, number]) => {
+            console.warn("Scale while offset changing", cameras.main.scale2D);
             return [offset[0], 0, 0];
           },
-          scaleFilter: (scale: [number, number, number]) => [scale[0], 0, 0]
+          scaleFilter: (scale: [number, number, number]) => {
+            this.store.scale = this.store.scale + scale[0];//cameras.main.scale2D[0];
+            console.warn("scale", this.store.scale);
+            return [0, 0, 0];
+          }
         }),
         labelControl: new BasicCamera2DController({
           camera: cameras.label,
           panFilter: (offset: [number, number, number]) => {
             return [offset[0], 0, 0];
           },
-          scaleFilter: (_scale: [number, number, number]) => [0, 0, 0]
+          scaleFilter: (scale: [number, number, number]) => {
+            /*const scale2D = cameras.main.scale2D;
+            let i = 0;
+            this.store.idToBar.forEach(
+              bar => {
+                console.warn('scale ', i, bar);
+                bar.label.origin = [i * 100 * scale2D[0], bar.label.origin[1]];
+                i++;
+              }
+            );*/
+            return [0, 0, 0]
+          }
         })
       }),
       scenes: (resources, providers, cameras) => ({
@@ -103,8 +119,8 @@ export interface IBarCharViewProps {
                 animate: {
                   startColor: AutoEasingMethod.easeInOutCubic(300),
                   endColor: AutoEasingMethod.easeInOutCubic(300),
-                  start: AutoEasingMethod.easeInOutCubic(500),
-                  end: AutoEasingMethod.easeInOutCubic(500),
+                  start: AutoEasingMethod.easeInOutCubic(300),
+                  end: AutoEasingMethod.easeInOutCubic(300),
                   thickness: AutoEasingMethod.easeInOutCubic(300)
                 },
                 data: providers.recLines,
@@ -125,7 +141,8 @@ export interface IBarCharViewProps {
             layers: [
               createLayer(LabelLayer, {
                 animate: {
-                  color: AutoEasingMethod.easeInOutCubic(300)
+                  color: AutoEasingMethod.easeInOutCubic(300),
+                  origin: AutoEasingMethod.easeInOutCubic(300)
                 },
                 data: providers.labels,
                 key: `labels`,

@@ -14,6 +14,7 @@ export class Bar {
   rectangle: RectangleInstance;
   recLine: EdgeInstance;
   label: LabelInstance;
+  width: number;
 
   constructor(options: IBarOptions) {
     this.labelText = options.labelText;
