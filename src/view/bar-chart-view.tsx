@@ -75,7 +75,7 @@ export interface IBarCharViewProps {
         controller: new BasicCamera2DController({
           camera: cameras.main,
           panFilter: (offset: [number, number, number]) => {
-            return [offset[0], 0, 0];
+            return [0, 0, 0];
           },
           scaleFilter: (scale: [number, number, number]) => {
             this.store.scale = this.store.scale + scale[0];
@@ -85,7 +85,7 @@ export interface IBarCharViewProps {
         labelControl: new BasicCamera2DController({
           camera: cameras.label,
           panFilter: (offset: [number, number, number]) => {
-            return [offset[0], 0, 0];
+            return [0, 0, 0];
           },
           scaleFilter: () => [0, 0, 0]
         })
@@ -145,6 +145,10 @@ export interface IBarCharViewProps {
             },
             layers: [
               createLayer(EdgeLayer, {
+                animate: {
+                  start: AutoEasingMethod.easeInOutCubic(300),
+                  end: AutoEasingMethod.easeInOutCubic(300)
+                },
                 data: providers.lines,
                 key: `lines`,
                 type: EdgeType.LINE,

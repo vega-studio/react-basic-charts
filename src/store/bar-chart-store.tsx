@@ -17,6 +17,8 @@ export class BarChartStore {
   @observable idsToRemove: number[] = [];
   @observable idsToAdd: number[] = [];
 
+  verticalLayout: boolean = false;
+
   verticalLine: EdgeInstance;
   horizonLine: EdgeInstance;
   providers = {
@@ -62,6 +64,11 @@ export class BarChartStore {
       () => this.idsToRemove.length > 0,
       () => this.removeBars()
     )
+  }
+
+  toggleChartLayout() {
+    this.verticalLayout = !this.verticalLayout;
+    this.layoutBars();
   }
 
   appendSingleBar(id: number, bar: Bar) {
@@ -157,11 +164,14 @@ export class BarChartStore {
 
     const origin: [number, number] = [lp, height - bp];
 
-    // this.layoutHorizon(w, h, origin);
-    this.layoutVertical(w, h, origin);
+    if (this.verticalLayout) {
+      this.layoutVertical(w, h, origin);
+    } else {
+      this.layoutHorizon(w, h, origin);
+    }
   }
 
-  layoutHorizon(width: number, height: number, origin: [number, number]){
+  layoutHorizon(width: number, height: number, origin: [number, number]) {
     const size = this.idToBar.size;
 
     const barWidth = width / size;
@@ -170,7 +180,12 @@ export class BarChartStore {
     // new locations
     const allReclines: EdgeInstance[] = [];
     const allLabels: LabelInstance[] = [];
-    // const labelWidths: number[] = [];
+
+    this.horizonLine.start = origin;
+    this.horizonLine.end = [origin[0] + width, origin[1]];
+
+    this.verticalLine.start = origin;
+    this.verticalLine.end = [origin[0], origin[1] - height];
 
     this.idToBar.forEach(bar => {
       const recLine = bar.recLine;
@@ -187,11 +202,11 @@ export class BarChartStore {
 
       if (bar) {
         recLine.start = [
-          origin[0] + (i + 0.5) * barWidth * this._scale, 
+          origin[0] + (i + 0.5) * barWidth * this._scale,
           origin[1]
         ];
         recLine.end = [
-          origin[0] + (i + 0.5) * barWidth * this._scale, 
+          origin[0] + (i + 0.5) * barWidth * this._scale,
           origin[1] - bar.value * height / this.maxValue
         ];
         recLine.thickness = [barRecWidth * this._scale, barRecWidth * this._scale];
@@ -199,6 +214,10 @@ export class BarChartStore {
     })
 
     allLabels.forEach((label, i) => {
+      label.anchor = {
+        type: AnchorType.TopMiddle,
+        padding: 0
+      }
       label.origin = [origin[0] + (i + 0.5) * barWidth * this._scale, origin[1] + 10];
       const bar = this.labelToBar.get(label);
 
@@ -212,7 +231,7 @@ export class BarChartStore {
     })
   }
 
-  layoutVertical(width: number, height: number, origin: [number, number]){
+  layoutVertical(width: number, height: number, origin: [number, number]) {
     const size = this.idToBar.size;
 
     const barWidth = height / size;
@@ -222,6 +241,8 @@ export class BarChartStore {
     const allReclines: EdgeInstance[] = [];
     const allLabels: LabelInstance[] = [];
 
+    let maxLabelWidth = 0;
+
     this.idToBar.forEach(bar => {
       const recLine = bar.recLine;
       allReclines.push(recLine);
@@ -230,38 +251,43 @@ export class BarChartStore {
 
       const size = label.size;
       if (!bar.width) bar.width = size[0];
+      maxLabelWidth = Math.max(maxLabelWidth, size[0]);
     });
+
+    const newOrigin: [number, number] = [origin[0] + maxLabelWidth, origin[1]]
+    const newWidth = width - maxLabelWidth;
+
+    this.horizonLine.start = newOrigin;
+    this.horizonLine.end = [newOrigin[0] + newWidth, newOrigin[1]];
+    this.verticalLine.start = newOrigin;
+    this.verticalLine.end = [newOrigin[0], newOrigin[1] - height];
 
     allReclines.forEach((recLine, i) => {
       const bar = this.recLineToBar.get(recLine);
 
       if (bar) {
         recLine.start = [
-          origin[0], 
-          origin[1] - (i + 0.5) * barWidth * this._scale
+          newOrigin[0],
+          newOrigin[1] - (i + 0.5) * barWidth * this._scale
         ];
         recLine.end = [
-          origin[0] + bar.value * height / this.maxValue, 
-          origin[1] - (i + 0.5) * barWidth * this._scale
+          newOrigin[0] + bar.value * newWidth / this.maxValue,
+          newOrigin[1] - (i + 0.5) * barWidth * this._scale
         ];
         recLine.thickness = [barRecWidth * this._scale, barRecWidth * this._scale];
       }
     })
 
     allLabels.forEach((label, i) => {
-      label.origin = [
-        origin[0] + (i + 0.5) * barWidth * this._scale, 
-        origin[1] + 10
-      ];
-      const bar = this.labelToBar.get(label);
-
-      if (bar) {
-        if (bar.width > barWidth * this.scale) {
-          label.text = bar.labelText.substring(0, 3);
-        } else {
-          label.text = bar.labelText;
-        }
+      label.anchor = {
+        type: AnchorType.MiddleRight,
+        padding: 10
       }
+
+      label.origin = [
+        newOrigin[0],
+        newOrigin[1] - (i + 0.5) * barWidth * this._scale
+      ];
     })
   }
 

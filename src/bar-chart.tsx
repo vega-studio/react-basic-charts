@@ -63,6 +63,9 @@ export class BarChart extends Component<IBarChartProps>{
     stopRandom: () => {
       this.action.stopeRandom();
     },
+    toggleLayout: () => {
+      this.store.toggleChartLayout();
+    },
     barNumber: 0
   }
 
@@ -148,6 +151,7 @@ export class BarChart extends Component<IBarChartProps>{
     const ui = new dat.GUI();
     ui.add(this.parameters, "changeRandom");
     ui.add(this.parameters, "stopRandom");
+    ui.add(this.parameters, 'toggleLayout');
     ui.add(this.parameters, "barNumber", 0, 20000, 1).onFinishChange((value: number) => {
       const curNumber = this.barData.length
       if (value > curNumber) {
