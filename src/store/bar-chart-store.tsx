@@ -141,13 +141,10 @@ export class BarChartStore {
   }
 
   layoutBars() {
-    const length = this.idToBar.size;
-
     const {
       width,
       height,
       padding,
-      maxValue
     } = this;
 
     const lp = padding.left > 1 ? padding.left : padding.left * width;
@@ -160,7 +157,14 @@ export class BarChartStore {
 
     const origin: [number, number] = [lp, height - bp];
 
-    const barWidth = w / length;
+    // this.layoutHorizon(w, h, origin);
+    this.layoutVertical(w, h, origin);
+  }
+
+  layoutHorizon(width: number, height: number, origin: [number, number]){
+    const size = this.idToBar.size;
+
+    const barWidth = width / size;
     const barRecWidth = 0.8 * barWidth;
 
     // new locations
@@ -180,12 +184,16 @@ export class BarChartStore {
 
     allReclines.forEach((recLine, i) => {
       const bar = this.recLineToBar.get(recLine);
-      // console.warn("index", i);
 
       if (bar) {
-        // console.warn('has bar');
-        recLine.start = [origin[0] + (i + 0.5) * barWidth * this._scale, origin[1]];
-        recLine.end = [origin[0] + (i + 0.5) * barWidth * this._scale, origin[1] - bar.value * h / maxValue];
+        recLine.start = [
+          origin[0] + (i + 0.5) * barWidth * this._scale, 
+          origin[1]
+        ];
+        recLine.end = [
+          origin[0] + (i + 0.5) * barWidth * this._scale, 
+          origin[1] - bar.value * height / this.maxValue
+        ];
         recLine.thickness = [barRecWidth * this._scale, barRecWidth * this._scale];
       }
     })
@@ -196,39 +204,65 @@ export class BarChartStore {
 
       if (bar) {
         if (bar.width > barWidth * this.scale) {
-          console.warn('pillow', label.scale);
-
           label.text = bar.labelText.substring(0, 3);
         } else {
           label.text = bar.labelText;
         }
       }
     })
+  }
 
-    /*EasingUtil.all(
-      true,
-      allReclines,
-      [
-        EdgeLayer.attributeNames.start,
-        EdgeLayer.attributeNames.end,
-        EdgeLayer.attributeNames.thickness
-      ],
-      easing => {
-        easing.setTiming(0, 500);
+  layoutVertical(width: number, height: number, origin: [number, number]){
+    const size = this.idToBar.size;
+
+    const barWidth = height / size;
+    const barRecWidth = 0.8 * barWidth;
+
+    // new locations
+    const allReclines: EdgeInstance[] = [];
+    const allLabels: LabelInstance[] = [];
+
+    this.idToBar.forEach(bar => {
+      const recLine = bar.recLine;
+      allReclines.push(recLine);
+      const label = bar.label;
+      allLabels.push(label);
+
+      const size = label.size;
+      if (!bar.width) bar.width = size[0];
+    });
+
+    allReclines.forEach((recLine, i) => {
+      const bar = this.recLineToBar.get(recLine);
+
+      if (bar) {
+        recLine.start = [
+          origin[0], 
+          origin[1] - (i + 0.5) * barWidth * this._scale
+        ];
+        recLine.end = [
+          origin[0] + bar.value * height / this.maxValue, 
+          origin[1] - (i + 0.5) * barWidth * this._scale
+        ];
+        recLine.thickness = [barRecWidth * this._scale, barRecWidth * this._scale];
       }
-    );
+    })
 
-    EasingUtil.all(
-      true,
-      allLabels,
-      [
-        "origin"
-      ],
-      easing => {
-        easing.setTiming(0, 500);
+    allLabels.forEach((label, i) => {
+      label.origin = [
+        origin[0] + (i + 0.5) * barWidth * this._scale, 
+        origin[1] + 10
+      ];
+      const bar = this.labelToBar.get(label);
+
+      if (bar) {
+        if (bar.width > barWidth * this.scale) {
+          label.text = bar.labelText.substring(0, 3);
+        } else {
+          label.text = bar.labelText;
+        }
       }
-    );*/
-
+    })
   }
 
   addBars() {

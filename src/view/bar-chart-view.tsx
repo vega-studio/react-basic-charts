@@ -75,12 +75,10 @@ export interface IBarCharViewProps {
         controller: new BasicCamera2DController({
           camera: cameras.main,
           panFilter: (offset: [number, number, number]) => {
-            console.warn("Scale while offset changing", cameras.main.scale2D);
             return [offset[0], 0, 0];
           },
           scaleFilter: (scale: [number, number, number]) => {
-            this.store.scale = this.store.scale + scale[0];//cameras.main.scale2D[0];
-            console.warn("scale", this.store.scale);
+            this.store.scale = this.store.scale + scale[0];
             return [0, 0, 0];
           }
         }),
@@ -89,18 +87,7 @@ export interface IBarCharViewProps {
           panFilter: (offset: [number, number, number]) => {
             return [offset[0], 0, 0];
           },
-          scaleFilter: (scale: [number, number, number]) => {
-            /*const scale2D = cameras.main.scale2D;
-            let i = 0;
-            this.store.idToBar.forEach(
-              bar => {
-                console.warn('scale ', i, bar);
-                bar.label.origin = [i * 100 * scale2D[0], bar.label.origin[1]];
-                i++;
-              }
-            );*/
-            return [0, 0, 0]
-          }
+          scaleFilter: () => [0, 0, 0]
         })
       }),
       scenes: (resources, providers, cameras) => ({
@@ -147,10 +134,6 @@ export interface IBarCharViewProps {
                 data: providers.labels,
                 key: `labels`,
                 resourceKey: resources.font.key,
-                picking: PickType.SINGLE,
-                onMouseOver: (info: IPickInfo<LabelInstance>) => {
-                  console.warn('label', info);
-                }
               }),
             ]
           },
@@ -165,7 +148,6 @@ export interface IBarCharViewProps {
                 data: providers.lines,
                 key: `lines`,
                 type: EdgeType.LINE,
-                picking: PickType.SINGLE,
               }),
             ]
           }
