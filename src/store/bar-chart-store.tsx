@@ -1,6 +1,6 @@
-import { InstanceProvider, CircleInstance, RectangleInstance, LabelInstance, EdgeInstance, AnchorType, EasingUtil, EdgeLayer, LabelLayer } from "deltav";
+import { InstanceProvider, RectangleInstance, LabelInstance, EdgeInstance, AnchorType, EasingUtil, EdgeLayer, LabelLayer } from "deltav";
 import { Bar } from "../view/bar";
-import { observable, reaction, remove } from "mobx";
+import { observable, reaction } from "mobx";
 
 export interface IBarChartStoreOptions {
   padding: {
@@ -37,6 +37,7 @@ export class BarChartStore {
   width: number;
   height: number;
   maxValue: number = 0;
+  maxLabelWidth: number = 0;
 
   offset: number = 0;
   private _scale: number = 1;
@@ -66,8 +67,9 @@ export class BarChartStore {
     )
   }
 
-  toggleChartLayout() {
+  async toggleChartLayout() {
     this.verticalLayout = !this.verticalLayout;
+    this.layoutLines();
     this.layoutBars();
   }
 
@@ -123,6 +125,35 @@ export class BarChartStore {
     return this._scale;
   }
 
+  async getMaxLabelWidth() {
+    function valueBiggerThanZero(label: LabelInstance) {
+      return new Promise(resolve => {
+        const timerId = setInterval(() => {
+            if(label.size[0] > 0 ) {
+              clearInterval(timerId);
+              resolve(label);
+            }
+        }, 1) 
+      })
+    }
+
+    let maxWidth = 0;
+    let i = 0;
+
+    await new Promise(resolve => {
+      this.idToBar.forEach(async bar => {
+        if(bar.label) {
+          await valueBiggerThanZero(bar.label);
+          maxWidth = Math.max(maxWidth, bar.label.size[0]);
+        }
+        i++;
+        if(i === this.idToBar.size) resolve();
+      });
+    })
+
+    this.maxLabelWidth = maxWidth;
+  }
+
   layoutLines() {
     const {
       width,
@@ -140,11 +171,22 @@ export class BarChartStore {
 
     const origin: [number, number] = [lp, height - bp];
 
-    this.horizonLine.start = origin;
-    this.horizonLine.end = [origin[0] + w, origin[1]];
+    if (this.verticalLayout) {
+      const newOrigin: [number, number] = [origin[0] + this.maxLabelWidth, origin[1]]
+      const newWidth = w - this.maxLabelWidth;
 
-    this.verticalLine.start = origin;
-    this.verticalLine.end = [origin[0], origin[1] - h];
+      this.horizonLine.start = newOrigin;
+      this.horizonLine.end = [newOrigin[0] + newWidth, newOrigin[1]];
+      this.verticalLine.start = newOrigin;
+      this.verticalLine.end = [newOrigin[0], newOrigin[1] - h];
+    } else {
+      this.horizonLine.start = origin;
+      this.horizonLine.end = [origin[0] + w, origin[1]];
+
+      this.verticalLine.start = origin;
+      this.verticalLine.end = [origin[0], origin[1] - h];
+    }
+
   }
 
   layoutBars() {
@@ -180,12 +222,6 @@ export class BarChartStore {
     // new locations
     const allReclines: EdgeInstance[] = [];
     const allLabels: LabelInstance[] = [];
-
-    this.horizonLine.start = origin;
-    this.horizonLine.end = [origin[0] + width, origin[1]];
-
-    this.verticalLine.start = origin;
-    this.verticalLine.end = [origin[0], origin[1] - height];
 
     this.idToBar.forEach(bar => {
       const recLine = bar.recLine;
@@ -231,7 +267,7 @@ export class BarChartStore {
     })
   }
 
-  layoutVertical(width: number, height: number, origin: [number, number]) {
+  async layoutVertical(width: number, height: number, origin: [number, number]) {
     const size = this.idToBar.size;
 
     const barWidth = height / size;
@@ -241,26 +277,16 @@ export class BarChartStore {
     const allReclines: EdgeInstance[] = [];
     const allLabels: LabelInstance[] = [];
 
-    let maxLabelWidth = 0;
-
     this.idToBar.forEach(bar => {
       const recLine = bar.recLine;
       allReclines.push(recLine);
       const label = bar.label;
       allLabels.push(label);
-
-      const size = label.size;
-      if (!bar.width) bar.width = size[0];
-      maxLabelWidth = Math.max(maxLabelWidth, size[0]);
     });
 
-    const newOrigin: [number, number] = [origin[0] + maxLabelWidth, origin[1]]
-    const newWidth = width - maxLabelWidth;
-
-    this.horizonLine.start = newOrigin;
-    this.horizonLine.end = [newOrigin[0] + newWidth, newOrigin[1]];
-    this.verticalLine.start = newOrigin;
-    this.verticalLine.end = [newOrigin[0], newOrigin[1] - height];
+    const maxWidth = this.maxLabelWidth;
+    const newOrigin: [number, number] = [origin[0] + maxWidth, origin[1]]
+    const newWidth = width - maxWidth;
 
     allReclines.forEach((recLine, i) => {
       const bar = this.recLineToBar.get(recLine);
@@ -288,21 +314,26 @@ export class BarChartStore {
         newOrigin[0],
         newOrigin[1] - (i + 0.5) * barWidth * this._scale
       ];
+
+      const bar = this.labelToBar.get(label);
+      label.text = bar.labelText;
     })
   }
 
-  addBars() {
+  async addBars() {
     const addedRecs: EdgeInstance[] = [];
     const addedLabels: LabelInstance[] = [];
 
-    this.idsToAdd.forEach(id => {
+    this.idsToAdd.forEach(async id => {
       const bar = this.idToBar.get(id);
       addedRecs.push(bar.recLine);
       addedLabels.push(bar.label);
     })
 
     this.idsToAdd = [];
-    this.updateMaxValue();
+
+    await this.updateMaxValue(true);
+    this.layoutLines();
     this.layoutBars();
 
     // Fade in
@@ -341,20 +372,31 @@ export class BarChartStore {
 
     });
 
-    setTimeout(() => {
+    setTimeout(async () => {
       removedRecs.forEach(rec => this.providers.recLines.remove(rec));
       removedLabels.forEach(label => this.providers.labels.remove(label));
       this.idsToRemove = [];
-      this.updateMaxValue();
+      await this.updateMaxValue(false);
+      this.layoutLines();
       this.layoutBars();
     }, 300)
 
   }
 
-  updateMaxValue() {
+  async updateMaxValue(dataAdded: boolean) {
     let maxValue = 0;
     this.idToBar.forEach(bar => maxValue = Math.max(maxValue, bar.value));
     this.maxValue = maxValue;
+
+    if(dataAdded) {
+      await this.getMaxLabelWidth();
+    } else {
+      let maxLabelWidth = 0;
+      this.idToBar.forEach(
+        bar => maxLabelWidth = Math.max(maxLabelWidth, bar.label.size[0])
+      );
+      this.maxLabelWidth = maxLabelWidth;
+    }
   }
 
   setMaxValue(val: number) {
