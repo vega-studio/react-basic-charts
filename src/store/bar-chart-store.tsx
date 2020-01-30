@@ -11,6 +11,7 @@ export interface IBarChartStoreOptions {
   },
   width: number;
   height: number;
+  shrink: number;
 }
 
 export class BarChartStore {
@@ -36,11 +37,22 @@ export class BarChartStore {
 
   width: number;
   height: number;
+
+  chartWidth: number;
+  chartHeight: number;
+  origin: [number, number];
+
+  barWidth: number;
+  shrink: number = 1;
+
   maxValue: number = 0;
   maxLabelWidth: number = 0;
 
   offset: number = 0;
-  private _scale: number = 1;
+
+  private _scale: number = 0;
+  private minScale: number = 0;
+  private maxScale: number = 1;
 
   padding: {
     left: number;
@@ -53,8 +65,9 @@ export class BarChartStore {
     this.width = options.width;
     this.height = options.height;
     this.padding = options.padding;
+    this.shrink = options.shrink;
 
-    this.init(options);
+    this.init();
 
     reaction(
       () => this.idsToAdd.length > 0,
@@ -67,7 +80,7 @@ export class BarChartStore {
     )
   }
 
-  async toggleChartLayout() {
+  toggleChartLayout() {
     this.verticalLayout = !this.verticalLayout;
     this.layoutLines();
     this.layoutBars();
@@ -100,6 +113,13 @@ export class BarChartStore {
         anchor: {
           type: AnchorType.TopMiddle,
           padding: 0
+        },
+        onReady: (label: LabelInstance) => {
+          if (label.size[0] > this.maxLabelWidth) {
+            this.maxLabelWidth = Math.max(this.maxLabelWidth, label.size[0]);
+            this.layoutLines();
+            this.layoutBars();
+          }
         }
       });
 
@@ -117,7 +137,7 @@ export class BarChartStore {
   }
 
   set scale(val: number) {
-    this._scale = Math.max(val, 0.3);
+    this._scale = Math.min(Math.max(this.minScale, val), this.maxScale);
     this.layoutBars();
   }
 
@@ -129,11 +149,11 @@ export class BarChartStore {
     function valueBiggerThanZero(label: LabelInstance) {
       return new Promise(resolve => {
         const timerId = setInterval(() => {
-            if(label.size[0] > 0 ) {
-              clearInterval(timerId);
-              resolve(label);
-            }
-        }, 1) 
+          if (label.size[0] > 0) {
+            clearInterval(timerId);
+            resolve(label);
+          }
+        }, 1)
       })
     }
 
@@ -142,12 +162,12 @@ export class BarChartStore {
 
     await new Promise(resolve => {
       this.idToBar.forEach(async bar => {
-        if(bar.label) {
+        if (bar.label) {
           await valueBiggerThanZero(bar.label);
           maxWidth = Math.max(maxWidth, bar.label.size[0]);
         }
         i++;
-        if(i === this.idToBar.size) resolve();
+        if (i === this.idToBar.size) resolve();
       });
     })
 
@@ -155,7 +175,7 @@ export class BarChartStore {
   }
 
   layoutLines() {
-    const {
+    /*const {
       width,
       height,
       padding
@@ -169,7 +189,11 @@ export class BarChartStore {
     const w = width - lp - rp;
     const h = height - tp - bp;
 
-    const origin: [number, number] = [lp, height - bp];
+    const origin: [number, number] = [lp, height - bp];*/
+
+    const origin = this.origin;
+    const w = this.chartWidth;
+    const h = this.chartHeight;
 
     if (this.verticalLayout) {
       const newOrigin: [number, number] = [origin[0] + this.maxLabelWidth, origin[1]]
@@ -190,7 +214,7 @@ export class BarChartStore {
   }
 
   layoutBars() {
-    const {
+    /*const {
       width,
       height,
       padding,
@@ -204,7 +228,10 @@ export class BarChartStore {
     const w = width - lp - rp;
     const h = height - tp - bp;
 
-    const origin: [number, number] = [lp, height - bp];
+    const origin: [number, number] = [lp, height - bp];*/
+    const origin = this.origin;
+    const w = this.chartWidth;
+    const h = this.chartHeight;
 
     if (this.verticalLayout) {
       this.layoutVertical(w, h, origin);
@@ -214,10 +241,8 @@ export class BarChartStore {
   }
 
   layoutHorizon(width: number, height: number, origin: [number, number]) {
-    const size = this.idToBar.size;
-
-    const barWidth = width / size;
-    const barRecWidth = 0.8 * barWidth;
+    const barWidth = width; // / size;
+    const barRecWidth = this.shrink * barWidth;
 
     // new locations
     const allReclines: EdgeInstance[] = [];
@@ -267,11 +292,15 @@ export class BarChartStore {
     })
   }
 
-  async layoutVertical(width: number, height: number, origin: [number, number]) {
+  updateMinScale() {
     const size = this.idToBar.size;
+    this.minScale = 1 / size;
+    this._scale = Math.min(Math.max(this.minScale, this._scale), this.maxScale);
+  }
 
-    const barWidth = height / size;
-    const barRecWidth = 0.8 * barWidth;
+  layoutVertical(width: number, height: number, origin: [number, number]) {
+    const barWidth = height;
+    const barRecWidth = this.shrink * barWidth;
 
     // new locations
     const allReclines: EdgeInstance[] = [];
@@ -320,11 +349,11 @@ export class BarChartStore {
     })
   }
 
-  async addBars() {
+  addBars() {
     const addedRecs: EdgeInstance[] = [];
     const addedLabels: LabelInstance[] = [];
 
-    this.idsToAdd.forEach(async id => {
+    this.idsToAdd.forEach(id => {
       const bar = this.idToBar.get(id);
       addedRecs.push(bar.recLine);
       addedLabels.push(bar.label);
@@ -332,7 +361,9 @@ export class BarChartStore {
 
     this.idsToAdd = [];
 
-    await this.updateMaxValue(true);
+    this.updateMaxValue(true);
+    this.updateMinScale();
+    this._scale = this.minScale;
     this.layoutLines();
     this.layoutBars();
 
@@ -372,25 +403,24 @@ export class BarChartStore {
 
     });
 
-    setTimeout(async () => {
+    setTimeout(() => {
       removedRecs.forEach(rec => this.providers.recLines.remove(rec));
       removedLabels.forEach(label => this.providers.labels.remove(label));
       this.idsToRemove = [];
-      await this.updateMaxValue(false);
+      this.updateMaxValue(false);
+      this.updateMinScale();
       this.layoutLines();
       this.layoutBars();
     }, 300)
 
   }
 
-  async updateMaxValue(dataAdded: boolean) {
+  updateMaxValue(dataAdded: boolean) {
     let maxValue = 0;
     this.idToBar.forEach(bar => maxValue = Math.max(maxValue, bar.value));
     this.maxValue = maxValue;
 
-    if(dataAdded) {
-      await this.getMaxLabelWidth();
-    } else {
+    if (!dataAdded) {
       let maxLabelWidth = 0;
       this.idToBar.forEach(
         bar => maxLabelWidth = Math.max(maxLabelWidth, bar.label.size[0])
@@ -415,25 +445,35 @@ export class BarChartStore {
   resize(width: number, height: number) {
     this.width = width;
     this.height = height;
+    this.updateChartMetrics();
     this.layoutLines();
     this.layoutBars();
   }
 
-  init(options: IBarChartStoreOptions) {
+  updateChartMetrics() {
     const {
       padding,
       width,
       height
-    } = options;
+    } = this;
 
     const lp = padding.left > 1 ? padding.left : padding.left * width;
     const rp = padding.right > 1 ? padding.right : padding.right * width;
     const tp = padding.top > 1 ? padding.top : padding.top * height;
     const bp = padding.bottom > 1 ? padding.bottom : padding.bottom * height;
 
-    const w = width - lp - rp;
-    const h = height - tp - bp;
-    const origin: [number, number] = [lp, height - bp];
+    this.chartWidth = width - lp - rp;
+    this.chartHeight = height - tp - bp;
+    this.origin = [lp, height - bp];
+
+    console.warn("Total size", this.idToBar.size);
+  }
+
+  init() {
+    this.updateChartMetrics();
+    const origin = this.origin;
+    const w = this.chartWidth;
+    const h = this.chartHeight;
 
     // Horizon Line
     this.horizonLine = this.providers.lines.add(new EdgeInstance({

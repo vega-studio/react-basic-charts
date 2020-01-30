@@ -49,6 +49,7 @@ function start() {
       labelColor={[1, 1, 1, 1]}
       lineColor={[1, 1, 1, 1]}
       lineWidth={1}
+      shrink={0.9}
       ref={el => eli = el}
     />,
     containter

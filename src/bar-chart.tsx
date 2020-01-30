@@ -32,6 +32,8 @@ export interface IBarChartProps {
     bottom: number | string;
   }
 
+  shrink: number;
+
   labelFont: string;
   labelColor: Color;
 
@@ -181,7 +183,8 @@ export class BarChart extends Component<IBarChartProps>{
         bottom: bottomPadding
       },
       width: window.innerWidth,
-      height: window.innerHeight
+      height: window.innerHeight,
+      shrink: props.shrink
     });
 
     for (let i = 0; i < barNumber; i++) {
