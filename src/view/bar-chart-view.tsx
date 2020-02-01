@@ -14,6 +14,7 @@ import {
   PickType,
   LabelInstance,
   AutoEasingMethod,
+  RectangleLayer,
 } from "deltav";
 import { BarChartAction } from "src/action";
 import { BarChartStore } from "src/store";
@@ -75,6 +76,7 @@ export interface IBarCharViewProps {
         controller: new BasicCamera2DController({
           camera: cameras.main,
           panFilter: (offset: [number, number, number]) => {
+            this.store.addOffset(offset);
             return [0, 0, 0];
           },
           scaleFilter: (scale: [number, number, number]) => {
@@ -84,7 +86,7 @@ export interface IBarCharViewProps {
         }),
         labelControl: new BasicCamera2DController({
           camera: cameras.label,
-          panFilter: (offset: [number, number, number]) => {
+          panFilter: () => {
             return [0, 0, 0];
           },
           scaleFilter: () => [0, 0, 0]
@@ -129,7 +131,7 @@ export interface IBarCharViewProps {
               createLayer(LabelLayer, {
                 animate: {
                   color: AutoEasingMethod.easeInOutCubic(300),
-                  origin: AutoEasingMethod.easeInOutCubic(300)
+                  origin: AutoEasingMethod.easeInOutCubic(1)
                 },
                 data: providers.labels,
                 key: `labels`,
@@ -153,6 +155,10 @@ export interface IBarCharViewProps {
                 key: `lines`,
                 type: EdgeType.LINE,
               }),
+              createLayer(RectangleLayer, {
+                data: providers.rectangles,
+                key: 'mask'
+              })
             ]
           }
         }

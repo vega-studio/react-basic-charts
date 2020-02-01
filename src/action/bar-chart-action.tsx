@@ -29,9 +29,7 @@ export class BarChartAction {
   mouseOverRecLineHandler = (info: IPickInfo<EdgeInstance>) => {
     console.warn('mouse over recline');
     info.instances.forEach(instance => {
-      instance.setColor([1, 1, 1, 1]); // set a highlight color
-      //instance.end = [instance.end[0], instance.end[1] - 20];
-      //instance.size = [instance.size[0], instance.size[1] + 20];
+      instance.setColor([1, 1, 1, 1]);
       const bar = this.store.recLineToBar.get(instance);
       if (bar) {
         bar.label.color = [1, 1, 1, 1];

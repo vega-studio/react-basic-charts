@@ -1,4 +1,4 @@
-import { InstanceProvider, RectangleInstance, LabelInstance, EdgeInstance, AnchorType, EasingUtil, EdgeLayer, LabelLayer } from "deltav";
+import { InstanceProvider, RectangleInstance, LabelInstance, EdgeInstance, AnchorType, EasingUtil, EdgeLayer, LabelLayer, GlyphLayer } from "deltav";
 import { Bar } from "../view/bar";
 import { observable, reaction } from "mobx";
 
@@ -22,6 +22,8 @@ export class BarChartStore {
 
   verticalLine: EdgeInstance;
   horizonLine: EdgeInstance;
+  mask1: RectangleInstance;
+  mask2: RectangleInstance;
   providers = {
     rectangles: new InstanceProvider<RectangleInstance>(),
     recLines: new InstanceProvider<EdgeInstance>(),
@@ -48,7 +50,9 @@ export class BarChartStore {
   maxValue: number = 0;
   maxLabelWidth: number = 0;
 
-  offset: number = 0;
+  private _offset: number = 0;
+  private minOffset: number = 0;
+  private maxOffset: number = 0;
 
   private _scale: number = 0;
   private minScale: number = 0;
@@ -82,6 +86,7 @@ export class BarChartStore {
 
   toggleChartLayout() {
     this.verticalLayout = !this.verticalLayout;
+    this.updateBoundry();
     this.layoutLines();
     this.layoutBars();
   }
@@ -136,9 +141,28 @@ export class BarChartStore {
     this.idsToAdd = ids;
   }
 
+  addOffset(val: [number, number, number]) {
+    if (this.verticalLayout) {
+      this.offset = this._offset + val[1];
+    } else {
+      this.offset = this._offset + val[0];
+    }
+  }
+
+  set offset(val: number) {
+    this._offset = Math.min(Math.max(this.minOffset, val), this.maxOffset);
+    console.warn("Offset", this._offset, "min", this.minOffset, "max", this.maxOffset);
+    this.layoutBars(true);
+  }
+
+  get offset() {
+    return this._offset;
+  }
+
   set scale(val: number) {
     this._scale = Math.min(Math.max(this.minScale, val), this.maxScale);
-    this.layoutBars();
+    this.updateBoundry();
+    this.layoutBars(false);
   }
 
   get scale() {
@@ -203,17 +227,29 @@ export class BarChartStore {
       this.horizonLine.end = [newOrigin[0] + newWidth, newOrigin[1]];
       this.verticalLine.start = newOrigin;
       this.verticalLine.end = [newOrigin[0], newOrigin[1] - h];
+
+      this.mask1.position = [0, 0];
+      this.mask1.size = [this.width, this.origin[1] - h];
+
+      this.mask2.position = [0, origin[1] + 1];
+      this.mask2.size = [this.width, this.height - this.origin[1]];
     } else {
       this.horizonLine.start = origin;
       this.horizonLine.end = [origin[0] + w, origin[1]];
 
       this.verticalLine.start = origin;
       this.verticalLine.end = [origin[0], origin[1] - h];
+
+      this.mask1.position = [0, 0];
+      this.mask1.size = [origin[0], this.height];
+
+      this.mask2.position = [origin[0] + w, 0];
+      this.mask2.size = [this.width - origin[0] - w, this.height];
     }
 
   }
 
-  layoutBars() {
+  layoutBars(noAinmation?: boolean) {
     /*const {
       width,
       height,
@@ -234,13 +270,40 @@ export class BarChartStore {
     const h = this.chartHeight;
 
     if (this.verticalLayout) {
-      this.layoutVertical(w, h, origin);
+      this.layoutVertical(w, h, origin, noAinmation);
     } else {
-      this.layoutHorizon(w, h, origin);
+      this.layoutHorizon(w, h, origin, noAinmation);
     }
   }
 
-  layoutHorizon(width: number, height: number, origin: [number, number]) {
+  updateMinScale() {
+    const size = this.idToBar.size;
+    this.minScale = 1 / size;
+    this._scale = Math.min(Math.max(this.minScale, this._scale), this.maxScale);
+    this.updateBoundry();
+  }
+
+  updateBoundry() {
+    const size = this.idToBar.size;
+
+    if (this.verticalLayout) {
+      this.minOffset = 0;
+      this.maxOffset = this.chartHeight * this._scale * size - this.chartHeight;
+    } else {
+      this.maxOffset = 0;
+      this.minOffset = this.chartWidth - this.chartWidth * this._scale * size;
+    }
+
+    this._offset = Math.min(Math.max(this.minOffset, this._offset), this.maxOffset);
+
+  }
+
+  layoutHorizon(
+    width: number,
+    height: number,
+    origin: [number, number],
+    noAinmation?: boolean
+  ) {
     const barWidth = width; // / size;
     const barRecWidth = this.shrink * barWidth;
 
@@ -263,11 +326,11 @@ export class BarChartStore {
 
       if (bar) {
         recLine.start = [
-          origin[0] + (i + 0.5) * barWidth * this._scale,
+          origin[0] + (i + 0.5) * barWidth * this._scale + this._offset,
           origin[1]
         ];
         recLine.end = [
-          origin[0] + (i + 0.5) * barWidth * this._scale,
+          origin[0] + (i + 0.5) * barWidth * this._scale + this._offset,
           origin[1] - bar.value * height / this.maxValue
         ];
         recLine.thickness = [barRecWidth * this._scale, barRecWidth * this._scale];
@@ -279,7 +342,10 @@ export class BarChartStore {
         type: AnchorType.TopMiddle,
         padding: 0
       }
-      label.origin = [origin[0] + (i + 0.5) * barWidth * this._scale, origin[1] + 10];
+      label.origin = [
+        origin[0] + (i + 0.5) * barWidth * this._scale + this._offset,
+        origin[1] + 10
+      ];
       const bar = this.labelToBar.get(label);
 
       if (bar) {
@@ -290,15 +356,59 @@ export class BarChartStore {
         }
       }
     })
+
+    if (noAinmation) {
+      EasingUtil.all(
+        true,
+        allReclines,
+        [
+          EdgeLayer.attributeNames.start,
+          EdgeLayer.attributeNames.end,
+          EdgeLayer.attributeNames.thickness
+        ],
+        easing => easing.setTiming(0, 1)
+      )
+
+      EasingUtil.all(
+        true,
+        allLabels,
+        [
+          "origin"
+        ],
+        easing => easing.setTiming(0, 1)
+      )
+    } else {
+      EasingUtil.all(
+        true,
+        allReclines,
+        [
+          EdgeLayer.attributeNames.start,
+          EdgeLayer.attributeNames.end,
+          EdgeLayer.attributeNames.thickness
+        ],
+        easing => easing.setTiming(0, 300)
+      )
+
+      EasingUtil.all(
+        true,
+        allLabels,
+        [
+          "origin"
+        ],
+        easing => easing.setTiming(0, 300)
+      )
+    }
+
   }
 
-  updateMinScale() {
-    const size = this.idToBar.size;
-    this.minScale = 1 / size;
-    this._scale = Math.min(Math.max(this.minScale, this._scale), this.maxScale);
-  }
 
-  layoutVertical(width: number, height: number, origin: [number, number]) {
+
+  layoutVertical(
+    width: number,
+    height: number,
+    origin: [number, number],
+    noAinmation: boolean = false
+  ) {
     const barWidth = height;
     const barRecWidth = this.shrink * barWidth;
 
@@ -323,11 +433,11 @@ export class BarChartStore {
       if (bar) {
         recLine.start = [
           newOrigin[0],
-          newOrigin[1] - (i + 0.5) * barWidth * this._scale
+          newOrigin[1] - (i + 0.5) * barWidth * this._scale + this._offset
         ];
         recLine.end = [
           newOrigin[0] + bar.value * newWidth / this.maxValue,
-          newOrigin[1] - (i + 0.5) * barWidth * this._scale
+          newOrigin[1] - (i + 0.5) * barWidth * this._scale + this._offset
         ];
         recLine.thickness = [barRecWidth * this._scale, barRecWidth * this._scale];
       }
@@ -341,12 +451,37 @@ export class BarChartStore {
 
       label.origin = [
         newOrigin[0],
-        newOrigin[1] - (i + 0.5) * barWidth * this._scale
+        newOrigin[1] - (i + 0.5) * barWidth * this._scale + this._offset
       ];
 
       const bar = this.labelToBar.get(label);
       label.text = bar.labelText;
     })
+
+    if (noAinmation) {
+      EasingUtil.all(
+        true,
+        allReclines,
+        [
+          EdgeLayer.attributeNames.start,
+          EdgeLayer.attributeNames.end,
+          EdgeLayer.attributeNames.thickness
+        ],
+        easing => easing.setTiming(0, 1)
+      )
+    } else {
+      EasingUtil.all(
+        true,
+        allReclines,
+        [
+          EdgeLayer.attributeNames.start,
+          EdgeLayer.attributeNames.end,
+          EdgeLayer.attributeNames.thickness
+        ],
+        easing => easing.setTiming(0, 300)
+      )
+    }
+
   }
 
   addBars() {
@@ -363,9 +498,15 @@ export class BarChartStore {
 
     this.updateMaxValue(true);
     this.updateMinScale();
-    this._scale = this.minScale;
-    this.layoutLines();
-    this.layoutBars();
+    this.updateBoundry();
+    // this._scale = this.minScale;
+    if (this.verticalLayout) {
+      this.offset = this.maxOffset;
+    } else {
+      this.offset = this.minOffset;
+    }
+    // this.layoutLines();
+    // this.layoutBars();
 
     // Fade in
     setTimeout(() => {
@@ -433,9 +574,18 @@ export class BarChartStore {
     if (val > this.maxValue) {
       this.idToBar.forEach(bar => {
         const recLine = bar.recLine;
-        const height = recLine.end[1] - recLine.start[1];
-        const newHeight = height * this.maxValue / val;
-        recLine.end = [recLine.end[0], recLine.start[1] + newHeight];
+
+        if (this.verticalLayout) {
+          const height = recLine.end[0] - recLine.start[0];
+          const newHeight = height * this.maxValue / val;
+          console.warn(newHeight);
+          recLine.end = [recLine.start[0] + newHeight, recLine.end[1]];
+        } else {
+          const height = recLine.end[1] - recLine.start[1];
+          const newHeight = height * this.maxValue / val;
+          recLine.end = [recLine.end[0], recLine.start[1] + newHeight];
+        }
+
       });
 
       this.maxValue = val;
@@ -485,6 +635,18 @@ export class BarChartStore {
     this.verticalLine = this.providers.lines.add(new EdgeInstance({
       start: origin,
       end: [origin[0], origin[1] - h]
+    }));
+
+    this.mask1 = this.providers.rectangles.add(new RectangleInstance({
+      position: [0, 0],
+      size: [origin[0], this.height],
+      color: [0, 0, 0, 1]
+    }));
+
+    this.mask2 = this.providers.rectangles.add(new RectangleInstance({
+      position: [origin[0] + w, 0],
+      size: [this.width - origin[0] - w, this.height],
+      color: [0, 0, 0, 1]
     }));
 
   }
