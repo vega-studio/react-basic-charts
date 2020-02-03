@@ -6,33 +6,14 @@ export class BarChartAction {
   store: BarChartStore;
   timer: number;
 
-  mouseOverRecHandler = (info: IPickInfo<RectangleInstance>) => {
-    info.instances.forEach(instance => {
-      instance.color = [1, 1, 1, 1]; // set a highlight color
-      const bar = this.store.rectangleToBar.get(instance);
-      if (bar) {
-        bar.label.color = [1, 1, 1, 1];
-      }
-    });
-  }
-
-  mouseOutRecHandler = (info: IPickInfo<RectangleInstance>) => {
-    info.instances.forEach(instance => {
-      const bar = this.store.rectangleToBar.get(instance);
-      if (bar) {
-        instance.color = bar.color;
-        bar.label.color = [0.8, 0.8, 0.8, 1];
-      }
-    });
-  }
-
   mouseOverRecLineHandler = (info: IPickInfo<EdgeInstance>) => {
     console.warn('mouse over recline');
     info.instances.forEach(instance => {
-      instance.setColor([1, 1, 1, 1]);
       const bar = this.store.recLineToBar.get(instance);
-      if (bar) {
-        bar.label.color = [1, 1, 1, 1];
+
+      if (bar && !bar.selected) {
+        instance.setColor(this.store.barHighlightColor);
+        bar.label.color = this.store.labelHighlightColor;
       }
     });
   }
@@ -40,19 +21,39 @@ export class BarChartAction {
   mouseOutRecLineHandler = (info: IPickInfo<EdgeInstance>) => {
     info.instances.forEach(instance => {
       const bar = this.store.recLineToBar.get(instance);
-      if (bar) {
+
+      if (bar && !bar.selected) {
         instance.setColor(bar.color);
-        bar.label.color = [0.8, 0.8, 0.8, 1];
+        bar.label.color = this.store.labelColor;
+      }
+    });
+  }
+
+  mouseClickRecLineHandler = (info: IPickInfo<EdgeInstance>) => {
+    info.instances.forEach(instance => {
+      const bar = this.store.recLineToBar.get(instance);
+
+      if (bar) {
+        if (bar.selected) {
+          instance.setColor(bar.color);
+          bar.label.color = this.store.labelColor;
+          bar.selected = false;
+        } else {
+          instance.setColor(this.store.barHighlightColor);
+          bar.label.color = this.store.labelHighlightColor;
+          bar.selected = true;
+        }
       }
     });
   }
 
   mouseOverLabelHandler = (info: IPickInfo<LabelInstance>) => {
     info.instances.forEach(instance => {
-      instance.color = [1, 1, 1, 1]; // set a highlight color
       const bar = this.store.labelToBar.get(instance);
-      if (bar) {
-        bar.rectangle.color = [1, 1, 1, 1];
+
+      if (bar && !bar.selected) {
+        instance.color = this.store.labelHighlightColor;
+        bar.recLine.setColor(this.store.barHighlightColor);
       }
     });
   }
@@ -60,9 +61,28 @@ export class BarChartAction {
   mouseOutLabelHandler = (info: IPickInfo<LabelInstance>) => {
     info.instances.forEach(instance => {
       const bar = this.store.labelToBar.get(instance);
+
+      if (bar && !bar.selected) {
+        instance.color = this.store.labelColor;
+        bar.recLine.setColor(bar.color);
+      }
+    });
+  }
+
+  mouseClickLabelHandler = (info: IPickInfo<LabelInstance>) => {
+    info.instances.forEach(instance => {
+      const bar = this.store.labelToBar.get(instance);
+
       if (bar) {
-        instance.color = [0.8, 0.8, 0.8, 1];
-        bar.rectangle.color = bar.color;
+        if (bar.selected) {
+          bar.recLine.setColor(bar.color);
+          instance.color = this.store.labelColor;
+          bar.selected = false;
+        } else {
+          bar.recLine.setColor(this.store.barHighlightColor);
+          instance.color = this.store.labelHighlightColor;
+          bar.selected = true;
+        }
       }
     });
   }

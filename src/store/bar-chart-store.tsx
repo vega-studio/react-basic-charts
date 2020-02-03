@@ -1,4 +1,4 @@
-import { InstanceProvider, RectangleInstance, LabelInstance, EdgeInstance, AnchorType, EasingUtil, EdgeLayer, LabelLayer, GlyphLayer } from "deltav";
+import { InstanceProvider, RectangleInstance, LabelInstance, EdgeInstance, AnchorType, EasingUtil, EdgeLayer, LabelLayer, GlyphLayer, Color } from "deltav";
 import { Bar } from "../view/bar";
 import { observable, reaction } from "mobx";
 
@@ -12,14 +12,20 @@ export interface IBarChartStoreOptions {
   width: number;
   height: number;
   shrink: number;
+  barHighlightColor?: Color;
+  labelColor?: Color;
+  labelHighlightColor?: Color;
 }
 
 export class BarChartStore {
+  // To Remove or add temporarily
   @observable idsToRemove: number[] = [];
   @observable idsToAdd: number[] = [];
 
+  // Layout mode
   verticalLayout: boolean = false;
 
+  // Shape Instances Holders
   verticalLine: EdgeInstance;
   horizonLine: EdgeInstance;
   mask1: RectangleInstance;
@@ -31,32 +37,21 @@ export class BarChartStore {
     lines: new InstanceProvider<EdgeInstance>()
   }
 
-  rectangleToBar: Map<RectangleInstance, Bar> = new Map<RectangleInstance, Bar>();
+  // Maps
   recLineToBar: Map<EdgeInstance, Bar> = new Map<EdgeInstance, Bar>();
   labelToBar: Map<LabelInstance, Bar> = new Map<LabelInstance, Bar>();
-
   idToBar: Map<number, Bar> = new Map<number, Bar>();
 
+  // BarChart metrics
   width: number;
   height: number;
-
   chartWidth: number;
   chartHeight: number;
   origin: [number, number];
-
   barWidth: number;
   shrink: number = 1;
-
   maxValue: number = 0;
   maxLabelWidth: number = 0;
-
-  private _offset: number = 0;
-  private minOffset: number = 0;
-  private maxOffset: number = 0;
-
-  private _scale: number = 0;
-  private minScale: number = 0;
-  private maxScale: number = 1;
 
   padding: {
     left: number;
@@ -65,11 +60,27 @@ export class BarChartStore {
     bottom: number;
   }
 
+  // Colors
+  barHighlightColor: Color = [1, 1, 1, 1];
+  labelColor: Color = [0.8, 0.8, 0.8, 1.0];
+  labelHighlightColor: Color = [1, 1, 1, 1];
+
+  // Camera Metrics
+  private _offset: number = 0;
+  private minOffset: number = 0;
+  private maxOffset: number = 0;
+  private _scale: number = 0;
+  private minScale: number = 0;
+  private maxScale: number = 1;
+
   constructor(options: IBarChartStoreOptions) {
     this.width = options.width;
     this.height = options.height;
     this.padding = options.padding;
     this.shrink = options.shrink;
+    this.barHighlightColor = options.barHighlightColor || this.barHighlightColor;
+    this.labelColor = options.labelColor || this.labelColor;
+    this.labelHighlightColor = options.labelHighlightColor || this.labelHighlightColor;
 
     this.init();
 

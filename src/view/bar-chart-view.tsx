@@ -48,7 +48,7 @@ export interface IBarCharViewProps {
 
   }
 
-  testHandler(e: React.MouseEvent) {
+  testHandler() {
     console.warn("test");
     const offset = this.mainCamera.offset;
     this.mainCamera.control2D.setOffset([offset[0] + 10, offset[1], offset[2]]);
@@ -118,16 +118,8 @@ export interface IBarCharViewProps {
                 type: EdgeType.LINE,
                 onMouseOver: this.action.mouseOverRecLineHandler,
                 onMouseOut: this.action.mouseOutRecLineHandler,
+                onMouseClick: this.action.mouseClickRecLineHandler
               }),
-            ]
-          },
-          labels: {
-            views: {
-              labelView: createView(View2D, {
-                camera: cameras.label,
-              })
-            },
-            layers: [
               createLayer(LabelLayer, {
                 animate: {
                   color: AutoEasingMethod.easeInOutCubic(300),
@@ -136,6 +128,10 @@ export interface IBarCharViewProps {
                 data: providers.labels,
                 key: `labels`,
                 resourceKey: resources.font.key,
+                picking: PickType.SINGLE,
+                onMouseOver: this.action.mouseOverLabelHandler,
+                onMouseOut: this.action.mouseOutLabelHandler,
+                onMouseClick: this.action.mouseClickLabelHandler
               }),
             ]
           },

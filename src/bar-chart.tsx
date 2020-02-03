@@ -36,6 +36,7 @@ export interface IBarChartProps {
 
   labelFont: string;
   labelColor: Color;
+  labelHighlightColor: Color;
 
   lineColor: Color;
   lineWidth: number;

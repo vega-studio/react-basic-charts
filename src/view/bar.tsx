@@ -15,6 +15,7 @@ export class Bar {
   recLine: EdgeInstance;
   label: LabelInstance;
   width: number;
+  selected: boolean = false;
 
   constructor(options: IBarOptions) {
     this.labelText = options.labelText;
@@ -33,13 +34,10 @@ export class Bar {
       const width = end[0] - start[0];
       const height = start[1] - end[1];
 
-      console.warn("width", width, "height", height);
-
       if (height > width) {
         const newH = height * val / this._value;
         this.recLine.end = [end[0], start[1] - newH];
       } else if (width > height) {
-        console.warn("vertical");
         const newW = width * val / this._value;
         this.recLine.end = [start[0] + newW, end[1]];
       }
