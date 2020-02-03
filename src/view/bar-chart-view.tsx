@@ -36,7 +36,6 @@ export interface IBarCharViewProps {
     this.action = props.action;
     this.store = props.store;
     window.onresize = this.resize.bind(this);
-    this.testHandler = this.testHandler.bind(this);
   }
 
   componentDidMount() {
@@ -48,14 +47,6 @@ export interface IBarCharViewProps {
 
   }
 
-  testHandler() {
-    console.warn("test");
-    const offset = this.mainCamera.offset;
-    this.mainCamera.control2D.setOffset([offset[0] + 10, offset[1], offset[2]]);
-  }
-
-
-
   resize() {
     this.store.resize(window.innerWidth, window.innerHeight);
   }
@@ -66,8 +57,7 @@ export interface IBarCharViewProps {
       providers: this.store.providers,
       cameras: {
         main: new Camera2D(),
-        axis: new Camera2D(),
-        label: new Camera2D()
+        axis: new Camera2D()
       },
       resources: {
         font: DEFAULT_RESOURCES.font
@@ -80,17 +70,17 @@ export interface IBarCharViewProps {
             return [0, 0, 0];
           },
           scaleFilter: (scale: [number, number, number]) => {
-            this.store.scale = this.store.scale + scale[0];
+            if (this.action.inAnimation()) {
+              this.action.stopRandom();
+              this.store.scale = this.store.scale + scale[0];
+              setTimeout(() => { this.action.changeRandom() }, 500);
+            } else {
+              this.store.scale = this.store.scale + scale[0];
+            }
+
             return [0, 0, 0];
           }
         }),
-        labelControl: new BasicCamera2DController({
-          camera: cameras.label,
-          panFilter: () => {
-            return [0, 0, 0];
-          },
-          scaleFilter: () => [0, 0, 0]
-        })
       }),
       scenes: (resources, providers, cameras) => ({
         resources: [],
@@ -169,7 +159,6 @@ export interface IBarCharViewProps {
     return <div
       ref='container'
       style={{ width: '100%', height: '100%' }}
-      onMouseDown={this.testHandler}
     ></div>;
   }
 }

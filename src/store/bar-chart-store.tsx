@@ -1,4 +1,4 @@
-import { InstanceProvider, RectangleInstance, LabelInstance, EdgeInstance, AnchorType, EasingUtil, EdgeLayer, LabelLayer, GlyphLayer, Color } from "deltav";
+import { InstanceProvider, RectangleInstance, LabelInstance, EdgeInstance, AnchorType, EasingUtil, EdgeLayer, LabelLayer, GlyphLayer, Color, GlyphInstance } from "deltav";
 import { Bar } from "../view/bar";
 import { observable, reaction } from "mobx";
 
@@ -162,7 +162,6 @@ export class BarChartStore {
 
   set offset(val: number) {
     this._offset = Math.min(Math.max(this.minOffset, val), this.maxOffset);
-    console.warn("Offset", this._offset, "min", this.minOffset, "max", this.maxOffset);
     this.layoutBars(true);
   }
 
@@ -210,22 +209,6 @@ export class BarChartStore {
   }
 
   layoutLines() {
-    /*const {
-      width,
-      height,
-      padding
-    } = this;
-
-    const lp = padding.left > 1 ? padding.left : padding.left * width;
-    const rp = padding.right > 1 ? padding.right : padding.right * width;
-    const tp = padding.top > 1 ? padding.top : padding.top * height;
-    const bp = padding.bottom > 1 ? padding.bottom : padding.bottom * height;
-
-    const w = width - lp - rp;
-    const h = height - tp - bp;
-
-    const origin: [number, number] = [lp, height - bp];*/
-
     const origin = this.origin;
     const w = this.chartWidth;
     const h = this.chartHeight;
@@ -261,21 +244,6 @@ export class BarChartStore {
   }
 
   layoutBars(noAinmation?: boolean) {
-    /*const {
-      width,
-      height,
-      padding,
-    } = this;
-
-    const lp = padding.left > 1 ? padding.left : padding.left * width;
-    const rp = padding.right > 1 ? padding.right : padding.right * width;
-    const tp = padding.top > 1 ? padding.top : padding.top * height;
-    const bp = padding.bottom > 1 ? padding.bottom : padding.bottom * height;
-
-    const w = width - lp - rp;
-    const h = height - tp - bp;
-
-    const origin: [number, number] = [lp, height - bp];*/
     const origin = this.origin;
     const w = this.chartWidth;
     const h = this.chartHeight;
@@ -313,7 +281,7 @@ export class BarChartStore {
     width: number,
     height: number,
     origin: [number, number],
-    noAinmation?: boolean
+    noAinmation: boolean = false
   ) {
     const barWidth = width; // / size;
     const barRecWidth = this.shrink * barWidth;
@@ -348,15 +316,20 @@ export class BarChartStore {
       }
     })
 
+    let allglyphs: GlyphInstance[] = [];
+
     allLabels.forEach((label, i) => {
       label.anchor = {
         type: AnchorType.TopMiddle,
         padding: 0
       }
+
       label.origin = [
         origin[0] + (i + 0.5) * barWidth * this._scale + this._offset,
         origin[1] + 10
       ];
+
+      allglyphs = allglyphs.concat(label.glyphs);
       const bar = this.labelToBar.get(label);
 
       if (bar) {
@@ -368,51 +341,8 @@ export class BarChartStore {
       }
     })
 
-    if (noAinmation) {
-      EasingUtil.all(
-        true,
-        allReclines,
-        [
-          EdgeLayer.attributeNames.start,
-          EdgeLayer.attributeNames.end,
-          EdgeLayer.attributeNames.thickness
-        ],
-        easing => easing.setTiming(0, 1)
-      )
-
-      EasingUtil.all(
-        true,
-        allLabels,
-        [
-          "origin"
-        ],
-        easing => easing.setTiming(0, 1)
-      )
-    } else {
-      EasingUtil.all(
-        true,
-        allReclines,
-        [
-          EdgeLayer.attributeNames.start,
-          EdgeLayer.attributeNames.end,
-          EdgeLayer.attributeNames.thickness
-        ],
-        easing => easing.setTiming(0, 300)
-      )
-
-      EasingUtil.all(
-        true,
-        allLabels,
-        [
-          "origin"
-        ],
-        easing => easing.setTiming(0, 300)
-      )
-    }
-
+    this.easeInstances(allReclines, allglyphs, noAinmation);
   }
-
-
 
   layoutVertical(
     width: number,
@@ -454,6 +384,7 @@ export class BarChartStore {
       }
     })
 
+    let allglyphs: GlyphInstance[] = [];
     allLabels.forEach((label, i) => {
       label.anchor = {
         type: AnchorType.MiddleRight,
@@ -465,14 +396,19 @@ export class BarChartStore {
         newOrigin[1] - (i + 0.5) * barWidth * this._scale + this._offset
       ];
 
+      allglyphs = allglyphs.concat(label.glyphs);
       const bar = this.labelToBar.get(label);
       label.text = bar.labelText;
     })
 
+    this.easeInstances(allReclines, allglyphs, noAinmation);
+  }
+
+  easeInstances(reclines: EdgeInstance[], glyphs: GlyphInstance[], noAinmation: boolean) {
     if (noAinmation) {
       EasingUtil.all(
         true,
-        allReclines,
+        reclines,
         [
           EdgeLayer.attributeNames.start,
           EdgeLayer.attributeNames.end,
@@ -480,10 +416,19 @@ export class BarChartStore {
         ],
         easing => easing.setTiming(0, 1)
       )
+
+      EasingUtil.all(
+        true,
+        glyphs,
+        [
+          GlyphLayer.attributeNames.origin
+        ],
+        easing => easing.setTiming(0, 1)
+      )
     } else {
       EasingUtil.all(
         true,
-        allReclines,
+        reclines,
         [
           EdgeLayer.attributeNames.start,
           EdgeLayer.attributeNames.end,
@@ -491,8 +436,16 @@ export class BarChartStore {
         ],
         easing => easing.setTiming(0, 300)
       )
-    }
 
+      EasingUtil.all(
+        true,
+        glyphs,
+        [
+          GlyphLayer.attributeNames.origin
+        ],
+        easing => easing.setTiming(0, 300)
+      )
+    }
   }
 
   addBars() {
@@ -510,14 +463,12 @@ export class BarChartStore {
     this.updateMaxValue(true);
     this.updateMinScale();
     this.updateBoundry();
-    // this._scale = this.minScale;
+
     if (this.verticalLayout) {
       this.offset = this.maxOffset;
     } else {
       this.offset = this.minOffset;
     }
-    // this.layoutLines();
-    // this.layoutBars();
 
     // Fade in
     setTimeout(() => {
@@ -589,7 +540,6 @@ export class BarChartStore {
         if (this.verticalLayout) {
           const height = recLine.end[0] - recLine.start[0];
           const newHeight = height * this.maxValue / val;
-          console.warn(newHeight);
           recLine.end = [recLine.start[0] + newHeight, recLine.end[1]];
         } else {
           const height = recLine.end[1] - recLine.start[1];
@@ -626,8 +576,6 @@ export class BarChartStore {
     this.chartWidth = width - lp - rp;
     this.chartHeight = height - tp - bp;
     this.origin = [lp, height - bp];
-
-    console.warn("Total size", this.idToBar.size);
   }
 
   init() {

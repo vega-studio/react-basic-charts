@@ -64,10 +64,19 @@ export class BarChart extends Component<IBarChartProps>{
       this.action.changeRandom();
     },
     stopRandom: () => {
-      this.action.stopeRandom();
+      this.action.stopRandom();
     },
     toggleLayout: () => {
-      this.store.toggleChartLayout();
+      if (this.action.inAnimation()) {
+        this.action.stopRandom();
+        this.store.toggleChartLayout();
+        setTimeout(() => {
+          this.action.changeRandom();
+        }, 300);
+      } else {
+        this.store.toggleChartLayout();
+      }
+
     },
     barNumber: 0
   }
@@ -158,9 +167,27 @@ export class BarChart extends Component<IBarChartProps>{
     ui.add(this.parameters, "barNumber", 0, 20000, 1).onFinishChange((value: number) => {
       const curNumber = this.barData.length
       if (value > curNumber) {
-        this.addDatas(value - curNumber);
+        if (this.action.inAnimation()) {
+          this.action.stopRandom();
+          this.addDatas(value - curNumber);
+          setTimeout(() => {
+            this.action.changeRandom();
+          }, 300);
+        } else {
+          this.addDatas(value - curNumber);
+        }
+
       } else if (value < curNumber) {
-        this.removeDatas(curNumber - value);
+        if (this.action.inAnimation()) {
+          this.action.stopRandom();
+          this.removeDatas(curNumber - value);
+          setTimeout(() => {
+            this.action.changeRandom();
+          }, 800);
+        } else {
+          this.removeDatas(curNumber - value);
+        }
+
       }
     });
   }

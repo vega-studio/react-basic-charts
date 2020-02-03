@@ -4,10 +4,9 @@ import { Bar } from "src/view/bar";
 
 export class BarChartAction {
   store: BarChartStore;
-  timer: number;
+  private timer: number = null;
 
   mouseOverRecLineHandler = (info: IPickInfo<EdgeInstance>) => {
-    console.warn('mouse over recline');
     info.instances.forEach(instance => {
       const bar = this.store.recLineToBar.get(instance);
 
@@ -104,7 +103,14 @@ export class BarChartAction {
 
   }
 
-  stopeRandom() {
-    clearInterval(this.timer);
+  stopRandom() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  inAnimation() {
+    return this.timer !== null;
   }
 }
