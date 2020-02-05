@@ -172,6 +172,35 @@ export class BarChartStore {
     return this._offset;
   }
 
+  addScale(val: number) {
+    /*if (val < -0.005) {
+      console.warn("smal");
+      this._scale = Math.min(Math.max(this.minScale, this._scale - 0.005), this.maxScale);
+      this.updateBoundry();
+      this.layoutBars(true, 25);
+    } else if (val > 0.005) {
+      console.warn("big");
+      this._scale = Math.min(Math.max(this.minScale, this._scale + 0.005), this.maxScale);
+      this.updateBoundry();
+      this.layoutBars(true, 25);
+    } else {
+      console.warn("mid");
+      this._scale = Math.min(Math.max(this.minScale, this._scale + val), this.maxScale);
+      this.updateBoundry();
+      this.layoutBars(false);
+    }*/
+
+    this._scale = Math.min(Math.max(this.minScale, this._scale + val), this.maxScale);
+    this.updateBoundry();
+
+    if (val > -0.005 && val < 0.005) {
+      this.layoutBars(false);
+    } else {
+      this.layoutBars(true, 300);
+    }
+
+  }
+
   set scale(val: number) {
     this._scale = Math.min(Math.max(this.minScale, val), this.maxScale);
     this.updateBoundry();

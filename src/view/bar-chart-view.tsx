@@ -72,12 +72,10 @@ export interface IBarCharViewProps {
           scaleFilter: (scale: [number, number, number]) => {
             if (this.action.inAnimation()) {
               this.action.stopRandom();
-              const deltaScale = Math.min(Math.max(scale[0], -0.005), 0.005);
-              this.store.scale = this.store.scale + deltaScale;
+              this.store.addScale(scale[0]);
               setTimeout(() => { this.action.changeRandom() }, 500);
             } else {
-              const deltaScale = Math.min(Math.max(scale[0], -0.005), 0.005);
-              this.store.scale = this.store.scale + deltaScale;
+              this.store.addScale(scale[0]);
             }
 
             return [0, 0, 0];
@@ -108,10 +106,10 @@ export interface IBarCharViewProps {
                 key: `recLines`,
                 picking: PickType.SINGLE,
                 type: EdgeType.LINE,
-                onMouseDown: (info:IPickInfo<EdgeInstance>) => {
+                onMouseDown: (info: IPickInfo<EdgeInstance>) => {
                   console.warn("mouse info", info);
                 },
-                onTouchDown:(info:IPickInfo<EdgeInstance>) => {
+                onTouchDown: (info: IPickInfo<EdgeInstance>) => {
                   console.warn("touch info", info);
                 },
                 onMouseOver: this.action.mouseOverRecLineHandler,
