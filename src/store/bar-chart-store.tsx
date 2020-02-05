@@ -15,6 +15,7 @@ export interface IBarChartStoreOptions {
   barHighlightColor?: Color;
   labelColor?: Color;
   labelHighlightColor?: Color;
+  lineWidth?: number;
 }
 
 export class BarChartStore {
@@ -52,6 +53,7 @@ export class BarChartStore {
   shrink: number = 1;
   maxValue: number = 0;
   maxLabelWidth: number = 0;
+  lineWidth: number = 1;
 
   padding: {
     left: number;
@@ -81,6 +83,7 @@ export class BarChartStore {
     this.barHighlightColor = options.barHighlightColor || this.barHighlightColor;
     this.labelColor = options.labelColor || this.labelColor;
     this.labelHighlightColor = options.labelHighlightColor || this.labelHighlightColor;
+    this.lineWidth = options.lineWidth || this.lineWidth;
 
     this.init();
 
@@ -99,7 +102,7 @@ export class BarChartStore {
     this.verticalLayout = !this.verticalLayout;
     this.updateBoundry();
     this.layoutLines();
-    this.layoutBars();
+    this.layoutBars(true, 300);
   }
 
   appendSingleBar(id: number, bar: Bar) {
@@ -134,7 +137,7 @@ export class BarChartStore {
           if (label.size[0] > this.maxLabelWidth) {
             this.maxLabelWidth = Math.max(this.maxLabelWidth, label.size[0]);
             this.layoutLines();
-            this.layoutBars();
+            this.layoutBars(true, 300);
           }
         }
       });
@@ -162,7 +165,7 @@ export class BarChartStore {
 
   set offset(val: number) {
     this._offset = Math.min(Math.max(this.minOffset, val), this.maxOffset);
-    this.layoutBars(true);
+    this.layoutBars(false);
   }
 
   get offset() {
@@ -212,6 +215,7 @@ export class BarChartStore {
     const origin = this.origin;
     const w = this.chartWidth;
     const h = this.chartHeight;
+    const lineWidth = this.lineWidth;
 
     if (this.verticalLayout) {
       const newOrigin: [number, number] = [origin[0] + this.maxLabelWidth, origin[1]]
@@ -235,23 +239,23 @@ export class BarChartStore {
       this.verticalLine.end = [origin[0], origin[1] - h];
 
       this.mask1.position = [0, 0];
-      this.mask1.size = [origin[0], this.height];
+      this.mask1.size = [origin[0] - lineWidth / 2, this.height - 1];
 
       this.mask2.position = [origin[0] + w, 0];
-      this.mask2.size = [this.width - origin[0] - w, this.height];
+      this.mask2.size = [this.width - origin[0] - w, this.height - 1];
     }
 
   }
 
-  layoutBars(noAinmation?: boolean) {
+  layoutBars(ainmation?: boolean, duration?: number) {
     const origin = this.origin;
     const w = this.chartWidth;
     const h = this.chartHeight;
 
     if (this.verticalLayout) {
-      this.layoutVertical(w, h, origin, noAinmation);
+      this.layoutVertical(w, h, origin, ainmation, duration);
     } else {
-      this.layoutHorizon(w, h, origin, noAinmation);
+      this.layoutHorizon(w, h, origin, ainmation, duration);
     }
   }
 
@@ -281,7 +285,8 @@ export class BarChartStore {
     width: number,
     height: number,
     origin: [number, number],
-    noAinmation: boolean = false
+    noAinmation: boolean = false,
+    duration: number = 1
   ) {
     const barWidth = width; // / size;
     const barRecWidth = this.shrink * barWidth;
@@ -341,14 +346,15 @@ export class BarChartStore {
       }
     })
 
-    this.easeInstances(allReclines, allglyphs, noAinmation);
+    this.easeInstances(allReclines, allglyphs, noAinmation, duration);
   }
 
   layoutVertical(
     width: number,
     height: number,
     origin: [number, number],
-    noAinmation: boolean = false
+    animation: boolean = true,
+    duration: number = 1
   ) {
     const barWidth = height;
     const barRecWidth = this.shrink * barWidth;
@@ -401,11 +407,11 @@ export class BarChartStore {
       label.text = bar.labelText;
     })
 
-    this.easeInstances(allReclines, allglyphs, noAinmation);
+    this.easeInstances(allReclines, allglyphs, animation, duration);
   }
 
-  easeInstances(reclines: EdgeInstance[], glyphs: GlyphInstance[], noAinmation: boolean) {
-    if (noAinmation) {
+  easeInstances(reclines: EdgeInstance[], glyphs: GlyphInstance[], ainmation: boolean, duration: number) {
+    if (ainmation) {
       EasingUtil.all(
         true,
         reclines,
@@ -414,7 +420,7 @@ export class BarChartStore {
           EdgeLayer.attributeNames.end,
           EdgeLayer.attributeNames.thickness
         ],
-        easing => easing.setTiming(0, 1)
+        easing => easing.setTiming(0, duration)
       )
 
       EasingUtil.all(
@@ -423,7 +429,7 @@ export class BarChartStore {
         [
           GlyphLayer.attributeNames.origin
         ],
-        easing => easing.setTiming(0, 1)
+        easing => easing.setTiming(0, duration)
       )
     } else {
       EasingUtil.all(
@@ -434,7 +440,7 @@ export class BarChartStore {
           EdgeLayer.attributeNames.end,
           EdgeLayer.attributeNames.thickness
         ],
-        easing => easing.setTiming(0, 300)
+        easing => easing.setTiming(0, 1)
       )
 
       EasingUtil.all(
@@ -443,7 +449,7 @@ export class BarChartStore {
         [
           GlyphLayer.attributeNames.origin
         ],
-        easing => easing.setTiming(0, 300)
+        easing => easing.setTiming(0, 1)
       )
     }
   }
@@ -513,7 +519,7 @@ export class BarChartStore {
       this.updateMaxValue(false);
       this.updateMinScale();
       this.layoutLines();
-      this.layoutBars();
+      this.layoutBars(true, 300);
     }, 300)
 
   }
@@ -558,7 +564,7 @@ export class BarChartStore {
     this.height = height;
     this.updateChartMetrics();
     this.layoutLines();
-    this.layoutBars();
+    this.layoutBars(true, 300);
   }
 
   updateChartMetrics() {
@@ -583,22 +589,25 @@ export class BarChartStore {
     const origin = this.origin;
     const w = this.chartWidth;
     const h = this.chartHeight;
+    const lineWidth = this.lineWidth;
 
     // Horizon Line
     this.horizonLine = this.providers.lines.add(new EdgeInstance({
       start: origin,
-      end: [origin[0] + w, origin[1]]
+      end: [origin[0] + w, origin[1]],
+      thickness: [lineWidth, lineWidth]
     }));
 
     // Vertical Line
     this.verticalLine = this.providers.lines.add(new EdgeInstance({
       start: origin,
-      end: [origin[0], origin[1] - h]
+      end: [origin[0], origin[1] - h],
+      thickness: [lineWidth, lineWidth]
     }));
 
     this.mask1 = this.providers.rectangles.add(new RectangleInstance({
       position: [0, 0],
-      size: [origin[0], this.height],
+      size: [origin[0] - lineWidth / 2, this.height],
       color: [0, 0, 0, 1]
     }));
 

@@ -12,9 +12,9 @@ import {
   LabelLayer,
   IPickInfo,
   PickType,
-  LabelInstance,
   AutoEasingMethod,
   RectangleLayer,
+  EdgeInstance,
 } from "deltav";
 import { BarChartAction } from "src/action";
 import { BarChartStore } from "src/store";
@@ -72,10 +72,12 @@ export interface IBarCharViewProps {
           scaleFilter: (scale: [number, number, number]) => {
             if (this.action.inAnimation()) {
               this.action.stopRandom();
-              this.store.scale = this.store.scale + scale[0];
+              const deltaScale = Math.min(Math.max(scale[0], -0.005), 0.005);
+              this.store.scale = this.store.scale + deltaScale;
               setTimeout(() => { this.action.changeRandom() }, 500);
             } else {
-              this.store.scale = this.store.scale + scale[0];
+              const deltaScale = Math.min(Math.max(scale[0], -0.005), 0.005);
+              this.store.scale = this.store.scale + deltaScale;
             }
 
             return [0, 0, 0];
@@ -106,6 +108,12 @@ export interface IBarCharViewProps {
                 key: `recLines`,
                 picking: PickType.SINGLE,
                 type: EdgeType.LINE,
+                onMouseDown: (info:IPickInfo<EdgeInstance>) => {
+                  console.warn("mouse info", info);
+                },
+                onTouchDown:(info:IPickInfo<EdgeInstance>) => {
+                  console.warn("touch info", info);
+                },
                 onMouseOver: this.action.mouseOverRecLineHandler,
                 onMouseOut: this.action.mouseOutRecLineHandler,
                 onMouseClick: this.action.mouseClickRecLineHandler
@@ -133,10 +141,6 @@ export interface IBarCharViewProps {
             },
             layers: [
               createLayer(EdgeLayer, {
-                animate: {
-                  start: AutoEasingMethod.easeInOutCubic(300),
-                  end: AutoEasingMethod.easeInOutCubic(300)
-                },
                 data: providers.lines,
                 key: `lines`,
                 type: EdgeType.LINE,

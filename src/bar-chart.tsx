@@ -212,7 +212,8 @@ export class BarChart extends Component<IBarChartProps>{
       },
       width: window.innerWidth,
       height: window.innerHeight,
-      shrink: props.shrink
+      shrink: props.shrink,
+      lineWidth: props.lineWidth
     });
 
     for (let i = 0; i < barNumber; i++) {

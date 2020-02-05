@@ -49,7 +49,7 @@ function start() {
       labelColor={[0.8, 0.8, 0.8, 1]}
       labelHighlightColor={[1.0, 1.0, 1.0, 1.0]}
       lineColor={[1, 1, 1, 1]}
-      lineWidth={1}
+      lineWidth={4}
       shrink={0.9}
       ref={el => eli = el}
     />,
