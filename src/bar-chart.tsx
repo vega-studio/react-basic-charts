@@ -210,7 +210,7 @@ export class BarChart extends Component<IBarChartProps>{
         top: topPadding,
         bottom: bottomPadding
       },
-      width: window.innerWidth,
+      width: window.innerWidth, // need to change
       height: window.innerHeight,
       shrink: props.shrink,
       lineWidth: props.lineWidth

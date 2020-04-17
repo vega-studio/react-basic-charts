@@ -1,5 +1,4 @@
 const { resolve } = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 const babelOptions = {
   babelrc: false,
   presets: [

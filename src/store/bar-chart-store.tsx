@@ -13,8 +13,8 @@ export interface IBarChartStoreOptions {
   height: number;
   shrink: number;
   barHighlightColor?: Color;
-  labelColor?: Color;
-  labelHighlightColor?: Color;
+  // labelColor?: Color;
+  // labelHighlightColor?: Color;
   lineWidth?: number;
 }
 
@@ -34,13 +34,13 @@ export class BarChartStore {
   providers = {
     rectangles: new InstanceProvider<RectangleInstance>(),
     recLines: new InstanceProvider<EdgeInstance>(),
-    labels: new InstanceProvider<LabelInstance>(),
+    // labels: new InstanceProvider<LabelInstance>(),
     lines: new InstanceProvider<EdgeInstance>()
   }
 
   // Maps
   recLineToBar: Map<EdgeInstance, Bar> = new Map<EdgeInstance, Bar>();
-  labelToBar: Map<LabelInstance, Bar> = new Map<LabelInstance, Bar>();
+  // labelToBar: Map<LabelInstance, Bar> = new Map<LabelInstance, Bar>();
   idToBar: Map<number, Bar> = new Map<number, Bar>();
 
   // BarChart metrics
@@ -52,8 +52,8 @@ export class BarChartStore {
   barWidth: number;
   shrink: number = 1;
   maxValue: number = 0;
-  maxLabelWidth: number = 0;
-  lineWidth: number = 1;
+  //maxLabelWidth: number = 0;
+  //lineWidth: number = 1;
 
   padding: {
     left: number;
@@ -64,8 +64,8 @@ export class BarChartStore {
 
   // Colors
   barHighlightColor: Color = [1, 1, 1, 1];
-  labelColor: Color = [0.8, 0.8, 0.8, 1.0];
-  labelHighlightColor: Color = [1, 1, 1, 1];
+  //labelColor: Color = [0.8, 0.8, 0.8, 1.0];
+  //labelHighlightColor: Color = [1, 1, 1, 1];
 
   // Camera Metrics
   private _offset: number = 0;
@@ -81,9 +81,9 @@ export class BarChartStore {
     this.padding = options.padding;
     this.shrink = options.shrink;
     this.barHighlightColor = options.barHighlightColor || this.barHighlightColor;
-    this.labelColor = options.labelColor || this.labelColor;
-    this.labelHighlightColor = options.labelHighlightColor || this.labelHighlightColor;
-    this.lineWidth = options.lineWidth || this.lineWidth;
+    //this.labelColor = options.labelColor || this.labelColor;
+    //this.labelHighlightColor = options.labelHighlightColor || this.labelHighlightColor;
+    //this.lineWidth = options.lineWidth || this.lineWidth;
 
     this.init();
 
@@ -101,7 +101,7 @@ export class BarChartStore {
   toggleChartLayout() {
     this.verticalLayout = !this.verticalLayout;
     this.updateBoundry();
-    this.layoutLines();
+    // this.layoutLines();
     this.layoutBars(true, 300);
   }
 
@@ -122,7 +122,7 @@ export class BarChartStore {
       this.recLineToBar.set(bar.recLine, bar);
     }
 
-    if (!bar.label) {
+    /*if (!bar.label) {
       bar.label = new LabelInstance({
         depth: 2,
         origin: [0, 0],
@@ -136,7 +136,7 @@ export class BarChartStore {
         onReady: (label: LabelInstance) => {
           if (label.size[0] > this.maxLabelWidth) {
             this.maxLabelWidth = Math.max(this.maxLabelWidth, label.size[0]);
-            this.layoutLines();
+            // this.layoutLines();
             this.layoutBars(true, 300);
           }
         }
@@ -144,7 +144,7 @@ export class BarChartStore {
 
       this.providers.labels.add(bar.label);
       this.labelToBar.set(bar.label, bar);
-    }
+    }*/
   }
 
   receiveIdsToRemove(ids: number[]) {
@@ -211,7 +211,7 @@ export class BarChartStore {
     return this._scale;
   }
 
-  async getMaxLabelWidth() {
+  /*async getMaxLabelWidth() {
     function valueBiggerThanZero(label: LabelInstance) {
       return new Promise(resolve => {
         const timerId = setInterval(() => {
@@ -238,9 +238,9 @@ export class BarChartStore {
     })
 
     this.maxLabelWidth = maxWidth;
-  }
+  }*/
 
-  layoutLines() {
+  /*layoutLines() {
     const origin = this.origin;
     const w = this.chartWidth;
     const h = this.chartHeight;
@@ -274,7 +274,7 @@ export class BarChartStore {
       this.mask2.size = [this.width - origin[0] - w, this.height - 1];
     }
 
-  }
+  }*/
 
   layoutBars(ainmation?: boolean, duration?: number) {
     const origin = this.origin;
@@ -322,16 +322,16 @@ export class BarChartStore {
 
     // new locations
     const allReclines: EdgeInstance[] = [];
-    const allLabels: LabelInstance[] = [];
+    // const allLabels: LabelInstance[] = [];
 
     this.idToBar.forEach(bar => {
       const recLine = bar.recLine;
       allReclines.push(recLine);
-      const label = bar.label;
-      allLabels.push(label);
+      // const label = bar.label;
+      // allLabels.push(label);
 
-      const size = label.size;
-      if (!bar.width) bar.width = size[0];
+      // const size = label.size;
+      // if (!bar.width) bar.width = size[0];
     });
 
     allReclines.forEach((recLine, i) => {
@@ -350,9 +350,9 @@ export class BarChartStore {
       }
     })
 
-    let allglyphs: GlyphInstance[] = [];
+    // let allglyphs: GlyphInstance[] = [];
 
-    allLabels.forEach((label, i) => {
+    /*allLabels.forEach((label, i) => {
       label.anchor = {
         type: AnchorType.TopMiddle,
         padding: 0
@@ -373,9 +373,9 @@ export class BarChartStore {
           label.text = bar.labelText;
         }
       }
-    })
+    })*/
 
-    this.easeInstances(allReclines, allglyphs, noAinmation, duration);
+    // this.easeInstances(allReclines, allglyphs, noAinmation, duration);
   }
 
   layoutVertical(
@@ -390,53 +390,53 @@ export class BarChartStore {
 
     // new locations
     const allReclines: EdgeInstance[] = [];
-    const allLabels: LabelInstance[] = [];
+    // const allLabels: LabelInstance[] = [];
 
     this.idToBar.forEach(bar => {
       const recLine = bar.recLine;
       allReclines.push(recLine);
-      const label = bar.label;
-      allLabels.push(label);
+      // const label = bar.label;
+      // allLabels.push(label);
     });
 
-    const maxWidth = this.maxLabelWidth;
-    const newOrigin: [number, number] = [origin[0] + maxWidth, origin[1]]
-    const newWidth = width - maxWidth;
+    //const maxWidth = this.maxLabelWidth;
+    //const newOrigin: [number, number] = [origin[0] + maxWidth, origin[1]]
+    //const newWidth = width - maxWidth;
 
     allReclines.forEach((recLine, i) => {
       const bar = this.recLineToBar.get(recLine);
 
       if (bar) {
         recLine.start = [
-          newOrigin[0],
-          newOrigin[1] - (i + 0.5) * barWidth * this._scale + this._offset
+          origin[0],
+          origin[1] - (i + 0.5) * barWidth * this._scale + this._offset
         ];
         recLine.end = [
-          newOrigin[0] + bar.value * newWidth / this.maxValue,
-          newOrigin[1] - (i + 0.5) * barWidth * this._scale + this._offset
+          origin[0] + bar.value * width / this.maxValue,
+          origin[1] - (i + 0.5) * barWidth * this._scale + this._offset
         ];
         recLine.thickness = [barRecWidth * this._scale, barRecWidth * this._scale];
       }
     })
 
-    let allglyphs: GlyphInstance[] = [];
-    allLabels.forEach((label, i) => {
-      label.anchor = {
-        type: AnchorType.MiddleRight,
-        padding: 10
-      }
-
-      label.origin = [
-        newOrigin[0],
-        newOrigin[1] - (i + 0.5) * barWidth * this._scale + this._offset
-      ];
-
-      allglyphs = allglyphs.concat(label.glyphs);
-      const bar = this.labelToBar.get(label);
-      label.text = bar.labelText;
-    })
-
-    this.easeInstances(allReclines, allglyphs, animation, duration);
+    /* let allglyphs: GlyphInstance[] = [];
+     allLabels.forEach((label, i) => {
+       label.anchor = {
+         type: AnchorType.MiddleRight,
+         padding: 10
+       }
+ 
+       label.origin = [
+         newOrigin[0],
+         newOrigin[1] - (i + 0.5) * barWidth * this._scale + this._offset
+       ];
+ 
+       allglyphs = allglyphs.concat(label.glyphs);
+       const bar = this.labelToBar.get(label);
+       label.text = bar.labelText;
+     })
+ 
+     this.easeInstances(allReclines, allglyphs, animation, duration);*/
   }
 
   easeInstances(reclines: EdgeInstance[], glyphs: GlyphInstance[], ainmation: boolean, duration: number) {
@@ -485,12 +485,12 @@ export class BarChartStore {
 
   addBars() {
     const addedRecs: EdgeInstance[] = [];
-    const addedLabels: LabelInstance[] = [];
+    // const addedLabels: LabelInstance[] = [];
 
     this.idsToAdd.forEach(id => {
       const bar = this.idToBar.get(id);
       addedRecs.push(bar.recLine);
-      addedLabels.push(bar.label);
+      // addedLabels.push(bar.label);
     })
 
     this.idsToAdd = [];
@@ -512,9 +512,9 @@ export class BarChartStore {
         rec.endColor = [rec.endColor[0], rec.endColor[1], rec.endColor[2], 1];
       });
 
-      addedLabels.forEach(label => {
+      /*addedLabels.forEach(label => {
         label.color = [label.color[0], label.color[1], label.color[2], 1];
-      })
+      })*/
     }, 400);
   }
 
@@ -532,9 +532,9 @@ export class BarChartStore {
         rec.endColor = [rec.endColor[0], rec.endColor[1], rec.endColor[2], 0];
         removedRecs.push(rec);
 
-        const label = bar.label;
-        label.color = [label.color[0], label.color[1], label.color[2], 0];
-        removedLabels.push(bar.label);
+        // const label = bar.label;
+        //label.color = [label.color[0], label.color[1], label.color[2], 0];
+        //removedLabels.push(bar.label);
 
         this.idToBar.delete(id);
       }
@@ -543,11 +543,11 @@ export class BarChartStore {
 
     setTimeout(() => {
       removedRecs.forEach(rec => this.providers.recLines.remove(rec));
-      removedLabels.forEach(label => this.providers.labels.remove(label));
+      // removedLabels.forEach(label => this.providers.labels.remove(label));
       this.idsToRemove = [];
       this.updateMaxValue(false);
       this.updateMinScale();
-      this.layoutLines();
+      // this.layoutLines();
       this.layoutBars(true, 300);
     }, 300)
 
@@ -558,13 +558,13 @@ export class BarChartStore {
     this.idToBar.forEach(bar => maxValue = Math.max(maxValue, bar.value));
     this.maxValue = maxValue;
 
-    if (!dataAdded) {
+    /*if (!dataAdded) {
       let maxLabelWidth = 0;
       this.idToBar.forEach(
         bar => maxLabelWidth = Math.max(maxLabelWidth, bar.label.size[0])
       );
       this.maxLabelWidth = maxLabelWidth;
-    }
+    }*/
   }
 
   setMaxValue(val: number) {
@@ -592,7 +592,7 @@ export class BarChartStore {
     this.width = width;
     this.height = height;
     this.updateChartMetrics();
-    this.layoutLines();
+    // this.layoutLines();
     this.layoutBars(true, 300);
   }
 
@@ -618,8 +618,9 @@ export class BarChartStore {
     const origin = this.origin;
     const w = this.chartWidth;
     const h = this.chartHeight;
-    const lineWidth = this.lineWidth;
+    // const lineWidth = this.lineWidth;
 
+    /*
     // Horizon Line
     this.horizonLine = this.providers.lines.add(new EdgeInstance({
       start: origin,
@@ -644,7 +645,8 @@ export class BarChartStore {
       position: [origin[0] + w, 0],
       size: [this.width - origin[0] - w, this.height],
       color: [0, 0, 0, 1]
-    }));
+    }));*/
+
 
   }
 }

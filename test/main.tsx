@@ -32,8 +32,6 @@ function start() {
     })
   }
 
-  let eli;
-
   ReactDOM.render(
     <BarChart
       data={barData}
@@ -51,7 +49,6 @@ function start() {
       lineColor={[1, 1, 1, 1]}
       lineWidth={4}
       shrink={0.9}
-      ref={el => eli = el}
     />,
     containter
   );

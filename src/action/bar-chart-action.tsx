@@ -12,7 +12,7 @@ export class BarChartAction {
 
       if (bar && !bar.selected) {
         instance.setColor(this.store.barHighlightColor);
-        bar.label.color = this.store.labelHighlightColor;
+        // bar.label.color = this.store.labelHighlightColor;
       }
     });
   }
@@ -23,7 +23,7 @@ export class BarChartAction {
 
       if (bar && !bar.selected) {
         instance.setColor(bar.color);
-        bar.label.color = this.store.labelColor;
+        // bar.label.color = this.store.labelColor;
       }
     });
   }
@@ -35,18 +35,18 @@ export class BarChartAction {
       if (bar) {
         if (bar.selected) {
           instance.setColor(bar.color);
-          bar.label.color = this.store.labelColor;
+          // bar.label.color = this.store.labelColor;
           bar.selected = false;
         } else {
           instance.setColor(this.store.barHighlightColor);
-          bar.label.color = this.store.labelHighlightColor;
+          // bar.label.color = this.store.labelHighlightColor;
           bar.selected = true;
         }
       }
     });
   }
 
-  mouseOverLabelHandler = (info: IPickInfo<LabelInstance>) => {
+  /*mouseOverLabelHandler = (info: IPickInfo<LabelInstance>) => {
     info.instances.forEach(instance => {
       const bar = this.store.labelToBar.get(instance);
 
@@ -84,7 +84,7 @@ export class BarChartAction {
         }
       }
     });
-  }
+  }*/
 
   changeRandom() {
     this.timer = setInterval(() => {

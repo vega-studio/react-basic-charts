@@ -116,7 +116,7 @@ export interface IBarCharViewProps {
                 onMouseOut: this.action.mouseOutRecLineHandler,
                 onMouseClick: this.action.mouseClickRecLineHandler
               }),
-              createLayer(LabelLayer, {
+              /*createLayer(LabelLayer, {
                 animate: {
                   color: AutoEasingMethod.easeInOutCubic(300),
                   origin: AutoEasingMethod.easeInOutCubic(1)
@@ -125,10 +125,10 @@ export interface IBarCharViewProps {
                 key: `labels`,
                 resourceKey: resources.font.key,
                 picking: PickType.SINGLE,
-                onMouseOver: this.action.mouseOverLabelHandler,
-                onMouseOut: this.action.mouseOutLabelHandler,
-                onMouseClick: this.action.mouseClickLabelHandler
-              }),
+                //onMouseOver: this.action.mouseOverLabelHandler,
+                //onMouseOut: this.action.mouseOutLabelHandler,
+                //onMouseClick: this.action.mouseClickLabelHandler
+              }),*/
             ]
           },
           axis: {

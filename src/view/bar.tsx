@@ -13,7 +13,7 @@ export class Bar {
   color: [number, number, number, number];
   rectangle: RectangleInstance;
   recLine: EdgeInstance;
-  label: LabelInstance;
+  // label: LabelInstance;
   width: number;
   selected: boolean = false;
 
