@@ -1,12 +1,19 @@
-import { Vec, Vec2 } from "deltav";
+import { Vec, Vec2, InstanceProvider, EdgeInstance } from "deltav";
 
 export interface IBasicBarStoreOptions {
-  barShrink: number;
+  data: number[];
+  barShrinkFactor: number;
+  provider: InstanceProvider<EdgeInstance>;
+  /** Indicates whether the axis layouts in vertical direction */
+  verticalLayout?: boolean;
   view: {
     origin: Vec2,
     size: Vec2
   }
 }
-export abstract class BasicBarStore {
 
+export class BasicBarStore {
+  constructor(options: IBasicBarStoreOptions) {
+
+  }
 }

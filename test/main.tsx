@@ -1,58 +1,107 @@
-import { BarChart } from "src";
-import ReactDOM from "react-dom";
-import React from "react";
-import { BarType } from "src/types";
-import { Color } from "deltav";
+import { Vec2, BasicSurface, InstanceProvider, EdgeInstance, LabelInstance, Camera2D, createFont, FontMapGlyphType, BasicCamera2DController, SimpleEventHandler, IMouseInteraction, createView, ClearFlags, View2D, createLayer, EdgeLayer, AutoEasingMethod, EdgeType, LabelLayer } from "deltav";
+import { BarAxisChart } from "src/bar-axis-chart";
 
-function start() {
-  const containter = document.getElementById('main');
-  if (!containter) return;
+let barAxis: BarAxisChart;
 
-  const barData: BarType[] = [];
-  const names: string[] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const colors: Color[] = [
-    [246 / 255, 229 / 255, 141 / 255, 1],
-    [255 / 255, 121 / 255, 121 / 255, 1],
-    [186 / 255, 220 / 255, 88 / 255, 1],
-    [223 / 255, 249 / 255, 251 / 255, 1],
-    [126 / 255, 214 / 255, 223 / 255, 1],
-    [224 / 255, 86 / 255, 253 / 255, 1],
-    [104 / 255, 109 / 255, 224 / 255, 1],
-    [48 / 255, 51 / 255, 107 / 255, 1],
-    [149 / 255, 175 / 255, 192 / 255, 1],
-    [249 / 255, 202 / 255, 36 / 255, 1],
-    [34 / 255, 166 / 255, 179 / 255, 1],
-    [72 / 255, 52 / 255, 212 / 255, 1]
-  ]
-  for (let i = 0; i < 12; i++) {
-    barData.push({
-      label: names[i],
-      value: 100 + 700 * Math.random(),
-      color: colors[i]
-    })
-  }
+async function makeSurface(container: HTMLElement) {
+  let mouse: Vec2 = [0, 0];
 
-  ReactDOM.render(
-    <BarChart
-      data={barData}
-      padding={
-        {
-          left: "2%",
-          right: "2%",
-          top: "2%",
-          bottom: "5%"
+  const surface = new BasicSurface({
+    container,
+    providers: {
+      ticks: new InstanceProvider<EdgeInstance>(),
+      bars: new InstanceProvider<EdgeInstance>(),
+      labels: new InstanceProvider<LabelInstance>(),
+    },
+    cameras: {
+      main: new Camera2D(),
+      axis: new Camera2D()
+    },
+    resources: {
+      font: createFont({
+        dynamic: true,
+        fontSource: {
+          errorGlyph: ' ',
+          family: 'Verdana',
+          size: 64,
+          weight: 400,
+          localKerningCache: false,
+          type: FontMapGlyphType.BITMAP
+        }
+      })
+    },
+    eventManagers: cameras => ({
+      controller: new BasicCamera2DController({
+        camera: cameras.main,
+        panFilter: (offset: [number, number, number]) => {
+          if (barAxis) barAxis.shift(offset);
+          return [0, 0, 0];
+        },
+        scaleFilter: (scale: [number, number, number]) => {
+          if (barAxis) barAxis.zoom(mouse, scale);
+          return [0, 0, 0];
+        },
+      }),
+      simple: new SimpleEventHandler({
+        handleMouseMove: (e: IMouseInteraction) => {
+          mouse = e.mouse.currentPosition;
+        }
+      })
+    }),
+    scenes: (resources, providers, cameras) => ({
+      main: {
+        views: {
+          start: createView(View2D, {
+            camera: cameras.main,
+            background: [0, 0, 0, 1],
+            clearFlags: [ClearFlags.COLOR, ClearFlags.DEPTH]
+          })
+        },
+        layers: {
+          ticks1: createLayer(EdgeLayer, {
+            animate: {
+              thickness: AutoEasingMethod.easeInOutCubic(300)
+            },
+            data: providers.ticks,
+            type: EdgeType.LINE,
+          }),
+          labels1: createLayer(LabelLayer, {
+            data: providers.labels,
+            resourceKey: resources.font.key
+          }),
         }
       }
-      labelFont="font"
-      labelColor={[0.8, 0.8, 0.8, 1]}
-      labelHighlightColor={[1.0, 1.0, 1.0, 1.0]}
-      lineColor={[1, 1, 1, 1]}
-      lineWidth={4}
-      shrink={0.9}
-    />,
-    containter
-  );
+    })
+  });
 
+  await surface.ready;
+  return surface;
+}
+
+
+async function start() {
+  const container = document.getElementById('main');
+  if (!container) return;
+
+  const names: string[] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const surface = await makeSurface(container);
+
+  barAxis = new BarAxisChart({
+    labels: names,
+    data: [],
+    barShrink: 0.9,
+    view: {
+      origin: [20, 600],
+      size: [600, 300]
+    },
+    labelFont: "rest",
+    barProvider: surface.providers.bars,
+    axisProvider: {
+      ticks: surface.providers.ticks,
+      labels: surface.providers.labels
+    }
+  })
 }
 
 start();
