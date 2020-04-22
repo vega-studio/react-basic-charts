@@ -3,7 +3,9 @@ import {
   createFont,
   WebGLStat,
   TextureSize,
-  FontMapGlyphType
+  FontMapGlyphType,
+  LabelInstance,
+  EdgeInstance
 } from "deltav";
 
 export type BarType = {

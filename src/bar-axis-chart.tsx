@@ -1,7 +1,7 @@
-import { HorizonRangeLayout, VerticalRangeLayout, Vec2 } from "../../deltav-axis-2d/src/types";
-import { Color, InstanceProvider, EdgeInstance, LabelInstance, Vec3 } from "deltav"
+import { Color, InstanceProvider, EdgeInstance, LabelInstance, Vec3, Vec2, RectangleInstance } from "deltav"
 import { BasicBarStore } from "./store/basic-bar-store";
-import { LabelAxisStore } from "./axis-store";
+import { LabelAxisStore, HorizonRangeLayout, VerticalRangeLayout } from "deltav-axis-2d";
+
 export interface IBarAxisChartProps {
   // data
   labels: string[];
@@ -29,10 +29,12 @@ export interface IBarAxisChartProps {
   tickLength?: number;
   /** Sets the thickness of the ticks */
   tickWidth?: number;
-
   /** Indicates the side of range labels in horizon mode. Can be ABOVE or BELOW*/
   horizonRangeLayout?: HorizonRangeLayout;
-  barProvider: InstanceProvider<EdgeInstance>;
+  barProvider: {
+    bars: InstanceProvider<EdgeInstance>,
+    masks: InstanceProvider<RectangleInstance>,
+  },
   axisProvider: {
     ticks: InstanceProvider<EdgeInstance>;
     labels: InstanceProvider<LabelInstance>;
@@ -46,21 +48,18 @@ export interface IBarAxisChartProps {
 export class BarAxisChart {
   barStore: BasicBarStore;
   axisStore: LabelAxisStore<string>;
-  axisProvider = {
-    ticks: new InstanceProvider<EdgeInstance>(),
-    labels: new InstanceProvider<LabelInstance>()
-  }
 
   constructor(options: IBarAxisChartProps) {
     this.barStore = new BasicBarStore({
       data: options.data,
       barShrinkFactor: 0.8,
-      provider: options.barProvider,
+      providers: {
+        bars: options.barProvider.bars,
+        masks: options.barProvider.masks
+      },
       verticalLayout: options.verticalLayout,
       view: options.view
     })
-
-    Object.assign(this.axisProvider, options.axisProvider);
 
     this.axisStore = new LabelAxisStore({
       labels: options.labels,
@@ -86,13 +85,21 @@ export class BarAxisChart {
 
   shift(offset: Vec3) {
     this.axisStore.updateOffset(offset);
-
-    // update barStore
+    this.barStore.updateOffset(offset);
   }
 
   zoom(focus: Vec2, deltaScale: Vec3) {
     this.axisStore.updateScale(focus, deltaScale);
+    this.barStore.updateScale(focus, deltaScale);
+  }
 
-    // update bar Sotre
+  changeAxis() {
+    this.axisStore.changeAxis();
+    this.barStore.changeAxis();
+  }
+
+  setView(view: { origin: Vec2, size: Vec2 }) {
+    this.axisStore.setView(view);
+    this.barStore.setView(view);
   }
 }

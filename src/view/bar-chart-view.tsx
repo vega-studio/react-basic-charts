@@ -83,7 +83,6 @@ export interface IBarCharViewProps {
         }),
       }),
       scenes: (resources, providers, cameras) => ({
-        resources: [],
         scenes: {
           main: {
             views: {

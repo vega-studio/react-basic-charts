@@ -1,7 +1,24 @@
-import { Vec2, BasicSurface, InstanceProvider, EdgeInstance, LabelInstance, Camera2D, createFont, FontMapGlyphType, BasicCamera2DController, SimpleEventHandler, IMouseInteraction, createView, ClearFlags, View2D, createLayer, EdgeLayer, AutoEasingMethod, EdgeType, LabelLayer } from "deltav";
+import { Vec2, BasicSurface, InstanceProvider, EdgeInstance, LabelInstance, Camera2D, createFont, FontMapGlyphType, BasicCamera2DController, SimpleEventHandler, IMouseInteraction, createView, ClearFlags, View2D, createLayer, EdgeLayer, AutoEasingMethod, EdgeType, LabelLayer, RectangleLayer, RectangleInstance } from "deltav";
 import { BarAxisChart } from "src/bar-axis-chart";
+import * as dat from "dat.gui";
 
 let barAxis: BarAxisChart;
+
+const parameters = {
+  toggleLayout: () => {
+    if (barAxis) {
+      barAxis.changeAxis();
+    }
+  },
+  setView: () => {
+    if (barAxis) {
+      barAxis.setView({
+        origin: [400 + 50 * Math.random(), 700 + 50 * Math.random()],
+        size: [800 + 300 * Math.random(), 600 + 200 * Math.random()]
+      })
+    }
+  }
+}
 
 async function makeSurface(container: HTMLElement) {
   let mouse: Vec2 = [0, 0];
@@ -10,6 +27,7 @@ async function makeSurface(container: HTMLElement) {
     container,
     providers: {
       ticks: new InstanceProvider<EdgeInstance>(),
+      masks: new InstanceProvider<RectangleInstance>(),
       bars: new InstanceProvider<EdgeInstance>(),
       labels: new InstanceProvider<LabelInstance>(),
     },
@@ -58,17 +76,24 @@ async function makeSurface(container: HTMLElement) {
           })
         },
         layers: {
-          ticks1: createLayer(EdgeLayer, {
+          recs: createLayer(EdgeLayer, {
+            data: providers.bars,
+            type: EdgeType.LINE,
+          }),
+          masks: createLayer(RectangleLayer, {
+            data: providers.masks,
+          }),
+          ticks: createLayer(EdgeLayer, {
             animate: {
               thickness: AutoEasingMethod.easeInOutCubic(300)
             },
             data: providers.ticks,
             type: EdgeType.LINE,
           }),
-          labels1: createLayer(LabelLayer, {
+          labels: createLayer(LabelLayer, {
             data: providers.labels,
             resourceKey: resources.font.key
-          }),
+          })
         }
       }
     })
@@ -78,30 +103,41 @@ async function makeSurface(container: HTMLElement) {
   return surface;
 }
 
+function buildConsole() {
+  const ui = new dat.GUI();
+  ui.add(parameters, 'toggleLayout');
+  ui.add(parameters, 'setView');
+}
 
 async function start() {
   const container = document.getElementById('main');
   if (!container) return;
 
   const names: string[] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
+  const datas: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   const surface = await makeSurface(container);
 
   barAxis = new BarAxisChart({
     labels: names,
-    data: [],
+    data: datas,
     barShrink: 0.9,
     view: {
-      origin: [20, 600],
-      size: [600, 300]
+      origin: [300, 600],
+      size: [800, 300]
     },
     labelFont: "rest",
-    barProvider: surface.providers.bars,
+    barProvider: {
+      bars: surface.providers.bars,
+      masks: surface.providers.masks,
+    },
     axisProvider: {
       ticks: surface.providers.ticks,
       labels: surface.providers.labels
-    }
+    },
+    verticalLayout: false
   })
+
+  buildConsole();
 }
 
 start();
