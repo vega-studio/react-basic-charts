@@ -1,8 +1,10 @@
 import { Vec2, BasicSurface, InstanceProvider, EdgeInstance, LabelInstance, Camera2D, createFont, FontMapGlyphType, BasicCamera2DController, SimpleEventHandler, IMouseInteraction, createView, ClearFlags, View2D, createLayer, EdgeLayer, AutoEasingMethod, EdgeType, LabelLayer, RectangleLayer, RectangleInstance } from "deltav";
 import { BarAxisChart } from "src/bar-axis-chart";
 import * as dat from "dat.gui";
+import moment from "moment";
+import { NumberBarAxisChart } from "src/number-bar-axis-chart";
 
-let barAxis: BarAxisChart;
+let barAxis: NumberBarAxisChart;
 
 const parameters = {
   toggleLayout: () => {
@@ -79,6 +81,11 @@ async function makeSurface(container: HTMLElement) {
           recs: createLayer(EdgeLayer, {
             data: providers.bars,
             type: EdgeType.LINE,
+            animate: {
+              //start: AutoEasingMethod.easeInOutCubic(200),
+              //end: AutoEasingMethod.easeInOutCubic(200),
+              //thickness: AutoEasingMethod.easeInOutCubic(200)
+            }
           }),
           masks: createLayer(RectangleLayer, {
             data: providers.masks,
@@ -109,21 +116,35 @@ function buildConsole() {
   ui.add(parameters, 'setView');
 }
 
+// Simulate get data from database
+function dataRetriever() {
+
+}
+
 async function start() {
   const container = document.getElementById('main');
   if (!container) return;
 
-  const names: string[] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const datas: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const startDate = new Date(2020, 2, 21);
+  const endDate = new Date();
+
+  const candidates = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const names: string[] = [];
+  const datas: number[] = [];
+
+  for (let i = 0; i < 1000; i++) {
+    names.push(candidates[Math.floor(Math.random() * 12)]);
+    datas.push(Math.random() * 10);
+  }
   const surface = await makeSurface(container);
 
-  barAxis = new BarAxisChart({
-    labels: names,
-    data: datas,
+  barAxis = new NumberBarAxisChart({
+    numberRange: [1, 1000],
+    numberGap: 1,
     barShrink: 0.9,
     view: {
       origin: [300, 600],
-      size: [800, 300]
+      size: [1000, 300]
     },
     labelFont: "rest",
     barProvider: {

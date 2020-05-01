@@ -16,6 +16,8 @@ const babelOptions = {
   ]
 };
 
+const PATH_TO_AXIS = process.env.PATH_TO_AXIS || process.argv[2];
+
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
 const MODE = IS_PRODUCTION ? 'production' : 'development';
@@ -44,6 +46,7 @@ module.exports = {
     path,
     library,
     libraryTarget,
+    publicPath: '/'
   },
   module: {
     rules: [

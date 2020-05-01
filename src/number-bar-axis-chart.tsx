@@ -1,16 +1,15 @@
-import { Color, InstanceProvider, EdgeInstance, LabelInstance, Vec3, Vec2, RectangleInstance } from "deltav"
-import { BasicBarStore } from "./store/basic-bar-store";
-import { LabelAxisStore, HorizonRangeLayout, VerticalRangeLayout } from "deltav-axis-2d";
-import { LabelBarStore } from "./store/label-bar-store";
+import { RectangleInstance, Vec2, Color, InstanceProvider, EdgeInstance, LabelInstance, Vec3 } from "deltav";
+import { NumberBarStore, INumberBarStoreOptions } from "./store/number-bar-store";
 
-export interface IBarAxisChartProps {
-  // data
-  labels: string[];
-  data: number[];
+import { NumberAxisStore, RangeNumberAxisStore, HorizonRangeLayout, VerticalRangeLayout } from "deltav-axis-2d";
 
+export interface INumberBarAxisChartProps {
+  numberRange: [number, number];
+  numberGap: number;
 
   /** Sets whether the axis displays range labels */
   displayRangeLabels?: boolean;
+  childrenNumber?: number;
 
   barShrink: number;
   // With paddings, origin and size can be calculated
@@ -48,26 +47,28 @@ export interface IBarAxisChartProps {
   verticalLayout?: boolean;
 }
 
-export class BarAxisChart {
-  barStore: BasicBarStore;
-  axisStore: LabelAxisStore<string>;
+export class NumberBarAxisChart {
+  barStore: NumberBarStore;
+  axisStore: RangeNumberAxisStore<number>;
+  childrenNumber: number = 10;
 
-  constructor(options: IBarAxisChartProps) {
-    this.barStore = new LabelBarStore({
+  constructor(options: INumberBarAxisChartProps) {
+    this.barStore = new NumberBarStore({
       barShrinkFactor: 0.8,
+      childrenNumber: this.childrenNumber,
       providers: {
         bars: options.barProvider.bars,
         masks: options.barProvider.masks
       },
-      labelNumber: options.labels.length,
+      numberRange: options.numberRange,
       verticalLayout: options.verticalLayout,
       view: options.view
     })
 
-    this.axisStore = new LabelAxisStore({
-      bucketWidth: 100,
-      labels: options.labels,
-      childrenNumber: 6,
+    this.axisStore = new RangeNumberAxisStore({
+      bucketWidth: options.view.size[0] / this.childrenNumber,
+      numberRange: options.numberRange,
+      childrenNumber: this.childrenNumber,
       view: options.view,
       verticalLayout: options.verticalLayout,
       providers: {
