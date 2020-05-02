@@ -1,7 +1,7 @@
 import { RectangleInstance, Vec2, Color, InstanceProvider, EdgeInstance, LabelInstance, Vec3 } from "deltav";
 import { NumberBarStore, INumberBarStoreOptions } from "./store/number-bar-store";
 
-import { NumberAxisStore, RangeNumberAxisStore, HorizonRangeLayout, VerticalRangeLayout } from "deltav-axis-2d";
+import { RangeNumberAxisStore, HorizonRangeLayout, VerticalRangeLayout } from "deltav-axis-2d";
 
 export interface INumberBarAxisChartProps {
   numberRange: [number, number];
@@ -67,6 +67,7 @@ export class NumberBarAxisChart {
 
     this.axisStore = new RangeNumberAxisStore({
       bucketWidth: options.view.size[0] / this.childrenNumber,
+      bucketHeight: options.view.size[1] / this.childrenNumber,
       numberRange: options.numberRange,
       childrenNumber: this.childrenNumber,
       view: options.view,

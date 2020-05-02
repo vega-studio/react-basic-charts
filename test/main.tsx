@@ -6,6 +6,8 @@ import { NumberBarAxisChart } from "src/number-bar-axis-chart";
 
 let barAxis: NumberBarAxisChart;
 
+let labelAxis: BarAxisChart;
+
 const parameters = {
   toggleLayout: () => {
     if (barAxis) {
@@ -32,6 +34,10 @@ async function makeSurface(container: HTMLElement) {
       masks: new InstanceProvider<RectangleInstance>(),
       bars: new InstanceProvider<EdgeInstance>(),
       labels: new InstanceProvider<LabelInstance>(),
+      ticks2: new InstanceProvider<EdgeInstance>(),
+      masks2: new InstanceProvider<RectangleInstance>(),
+      bars2: new InstanceProvider<EdgeInstance>(),
+      labels2: new InstanceProvider<LabelInstance>(),
     },
     cameras: {
       main: new Camera2D(),
@@ -55,10 +61,12 @@ async function makeSurface(container: HTMLElement) {
         camera: cameras.main,
         panFilter: (offset: [number, number, number]) => {
           if (barAxis) barAxis.shift(offset);
+          if (labelAxis) labelAxis.shift(offset);
           return [0, 0, 0];
         },
         scaleFilter: (scale: [number, number, number]) => {
           if (barAxis) barAxis.zoom(mouse, scale);
+          if (labelAxis) labelAxis.zoom(mouse, scale);
           return [0, 0, 0];
         },
       }),
@@ -81,11 +89,6 @@ async function makeSurface(container: HTMLElement) {
           recs: createLayer(EdgeLayer, {
             data: providers.bars,
             type: EdgeType.LINE,
-            animate: {
-              //start: AutoEasingMethod.easeInOutCubic(200),
-              //end: AutoEasingMethod.easeInOutCubic(200),
-              //thickness: AutoEasingMethod.easeInOutCubic(200)
-            }
           }),
           masks: createLayer(RectangleLayer, {
             data: providers.masks,
@@ -99,6 +102,24 @@ async function makeSurface(container: HTMLElement) {
           }),
           labels: createLayer(LabelLayer, {
             data: providers.labels,
+            resourceKey: resources.font.key
+          }),
+          recs2: createLayer(EdgeLayer, {
+            data: providers.bars2,
+            type: EdgeType.LINE,
+          }),
+          masks2: createLayer(RectangleLayer, {
+            data: providers.masks2,
+          }),
+          ticks2: createLayer(EdgeLayer, {
+            animate: {
+              thickness: AutoEasingMethod.easeInOutCubic(300)
+            },
+            data: providers.ticks2,
+            type: EdgeType.LINE,
+          }),
+          labels2: createLayer(LabelLayer, {
+            data: providers.labels2,
             resourceKey: resources.font.key
           })
         }
@@ -132,7 +153,7 @@ async function start() {
   const names: string[] = [];
   const datas: number[] = [];
 
-  for (let i = 0; i < 1000; i++) {
+  for (let i = 0; i < 100; i++) {
     names.push(candidates[Math.floor(Math.random() * 12)]);
     datas.push(Math.random() * 10);
   }
@@ -154,6 +175,26 @@ async function start() {
     axisProvider: {
       ticks: surface.providers.ticks,
       labels: surface.providers.labels
+    },
+    verticalLayout: false
+  })
+
+  labelAxis = new BarAxisChart({
+    labels: names,
+    data: datas,
+    barShrink: 0.9,
+    view: {
+      origin: [300, 900],
+      size: [1000, 300]
+    },
+    labelFont: "rest",
+    barProvider: {
+      bars: surface.providers.bars2,
+      masks: surface.providers.masks2,
+    },
+    axisProvider: {
+      ticks: surface.providers.ticks2,
+      labels: surface.providers.labels2
     },
     verticalLayout: false
   })

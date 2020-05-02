@@ -64,31 +64,30 @@ export class NumberBarStore extends BasicBarStore {
     this.updateInterval();
 
     this.maxLevel = this.scaleLevel;
-    console.warn("max level", this.maxLevel);
     this.layoutRegular();
   }
 
   initMask() {
     const curScale = this.transformScale();
     const interval = this.intervalLengths[this.scaleLevel];
-    const intWidth = interval * this.unitWidth;
+    const intWidth = this.verticalLayout ? interval * this.unitHeight : interval * this.unitWidth;
 
     this.mask1 = this.providers.masks.add(new RectangleInstance({
       position: this.verticalLayout ?
         [this.view.origin[0], this.view.origin[1]] :
         [this.view.origin[0] - intWidth * curScale, 0],
       size: this.verticalLayout ?
-        [this.view.size[0], this.unitHeight * curScale] :
+        [window.innerWidth - this.view.origin[0], intWidth * curScale] :
         [intWidth * curScale, this.view.origin[1]],
       color: [0, 0, 0, 1]
     }));
 
     this.mask2 = this.providers.masks.add(new RectangleInstance({
       position: this.verticalLayout ?
-        [this.view.origin[0], this.view.origin[1] - this.view.size[1] - this.unitHeight * curScale] :
+        [this.view.origin[0], this.view.origin[1] - this.view.size[1] - intWidth * curScale] :
         [this.view.origin[0] + this.view.size[0], 0],
       size: this.verticalLayout ?
-        [this.view.size[0], this.unitHeight * curScale] :
+        [window.innerWidth - this.view.origin[0], intWidth * curScale] :
         [intWidth * curScale, this.view.origin[1]],
       color: [0, 0, 0, 1]
     }));
@@ -103,14 +102,14 @@ export class NumberBarStore extends BasicBarStore {
       [this.view.origin[0], this.view.origin[1]] :
       [this.view.origin[0] - intWidth * curScale, 0];
     this.mask1.size = this.verticalLayout ?
-      [this.view.size[0], this.unitHeight * curScale] :
+      [window.innerWidth - this.view.origin[0], intWidth * curScale] :
       [intWidth * curScale, this.view.origin[1]];
 
     this.mask2.position = this.verticalLayout ?
-      [this.view.origin[0], this.view.origin[1] - this.view.size[1] - this.unitHeight * curScale] :
+      [this.view.origin[0], this.view.origin[1] - this.view.size[1] - intWidth * curScale] :
       [this.view.origin[0] + this.view.size[0], 0];
     this.mask2.size = this.verticalLayout ?
-      [this.view.size[0], this.unitHeight * curScale] :
+      [window.innerWidth - this.view.origin[0], intWidth * curScale] :
       [intWidth * curScale, this.view.origin[1]];
   }
 
@@ -266,11 +265,6 @@ export class NumberBarStore extends BasicBarStore {
   }
 
   layout() {
-    /*if (this.preScaleLevel === -1 || this.scaleLevel === this.preScaleLevel) {
-      this.layoutRegular();
-    } else {
-      this.lauyoutOnLevelChange();
-    }*/
     this.layoutBars();
   }
 
@@ -397,12 +391,12 @@ export class NumberBarStore extends BasicBarStore {
           const color: Color = [bar.startColor[0], bar.startColor[1], bar.startColor[2], alpha];
 
           bar.start = this.verticalLayout ?
-            [origin[0], origin[1] - (index) * intWidth - this.offset] :
-            [origin[0] + ((index + 0.5) * intWidth) * curScale + this.offset, origin[1]];
+            [origin[0], origin[1] - (index + 0.5) * intWidth * curScale - this.offset] :
+            [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, origin[1]];
 
           bar.end = this.verticalLayout ?
-            [origin[0] + barHeight, origin[1] - (index) * intWidth - this.offset] :
-            [origin[0] + ((index + 0.5) * intWidth) * curScale + this.offset, bar.end[1]];
+            [origin[0] + barHeight, origin[1] - (index + 0.5) * intWidth * curScale - this.offset] :
+            [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, bar.end[1]];
 
           bar.setColor(color);
           bar.setEdgeThickness(recWidth * curScale);
@@ -413,15 +407,13 @@ export class NumberBarStore extends BasicBarStore {
 
           const bar = new EdgeInstance({
             start:
-              [
-                origin[0] + ((index + 0.5) * intWidth) * curScale + this.offset,
-                origin[1]
-              ],
+              this.verticalLayout ?
+                [origin[0], origin[1] - (index + 0.5) * intWidth * curScale - this.offset] :
+                [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, origin[1]],
             end:
-              [
-                origin[0] + ((index + 0.5) * intWidth) * curScale + this.offset,
-                origin[1] - barHeight
-              ],
+              this.verticalLayout ?
+                [origin[0] + barHeight, origin[1] - (index + 0.5) * intWidth * curScale - this.offset] :
+                [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, origin[1]],
             thickness: [recWidth * curScale, recWidth * curScale],
             startColor: color,
             endColor: color,
@@ -439,29 +431,45 @@ export class NumberBarStore extends BasicBarStore {
         const parentIndex = Math.floor(index / this.childrenNumber);
         const parentInterval = this.intervalLengths[this.scaleLevel + 1];
         const parentIntWidth = parentInterval * unit;
-        const parentPosX = this.view.origin[0] + ((parentIndex + 0.5) * parentIntWidth) * curScale + this.offset;
+        const parentPosX = this.view.origin[0] + (parentIndex + 0.5) * parentIntWidth * curScale + this.offset;
+        const parentPosY = this.view.origin[1] - (parentIndex + 0.5) * parentIntWidth * curScale - this.offset
         const parentBarHeight = this.getData(this.scaleLevel + 1, parentIndex);
 
         const startX = parentPosX - parentIntWidth * this.barShrinkFactor * curScale * 0.5;
+        const startY = parentPosY + parentIntWidth * this.barShrinkFactor * curScale * 0.5;
 
         let bar = levelMap.get(index);
         const barHeight = this.getData(this.scaleLevel, index);
 
-
         const sx = startX + (j + 0.5) * recWidth * curScale;
-        const ex = this.view.origin[0] + ((index + 0.5) * intWidth) * curScale + this.offset;
+        const ex = this.view.origin[0] + (index + 0.5) * intWidth * curScale + this.offset;
 
-        const startLoc = this.getLocation(
-          [sx, this.view.origin[1]],
-          [ex, this.view.origin[1]],
-          positionScale
-        );
+        const sy = startY - (j + 0.5) * recWidth * curScale;
+        const ey = this.view.origin[1] - (index + 0.5) * intWidth * curScale - this.offset;
 
-        const endLoc = this.getLocation(
-          [sx, this.view.origin[1] - parentBarHeight],
-          [ex, this.view.origin[1] - barHeight],
-          positionScale
-        )
+        const startLoc = this.verticalLayout ?
+          this.getLocation(
+            [this.view.origin[0], sy],
+            [this.view.origin[0], ey],
+            positionScale
+          ) :
+          this.getLocation(
+            [sx, this.view.origin[1]],
+            [ex, this.view.origin[1]],
+            positionScale
+          );
+
+        const endLoc = this.verticalLayout ?
+          this.getLocation(
+            [this.view.origin[0] + parentBarHeight, sy],
+            [this.view.origin[0] + barHeight, ey],
+            positionScale
+          ) :
+          this.getLocation(
+            [sx, this.view.origin[1] - parentBarHeight],
+            [ex, this.view.origin[1] - barHeight],
+            positionScale
+          )
 
         // const thickness = this.getThickness()
 

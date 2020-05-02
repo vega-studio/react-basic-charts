@@ -53,21 +53,24 @@ export class BarAxisChart {
   axisStore: LabelAxisStore<string>;
 
   constructor(options: IBarAxisChartProps) {
+    const childrenNumber = options.labels.length;
+
     this.barStore = new LabelBarStore({
       barShrinkFactor: 0.8,
       providers: {
         bars: options.barProvider.bars,
         masks: options.barProvider.masks
       },
-      labelNumber: options.labels.length,
+      labelNumber: childrenNumber,
       verticalLayout: options.verticalLayout,
       view: options.view
     })
 
     this.axisStore = new LabelAxisStore({
-      bucketWidth: 100,
+      bucketWidth: options.view.size[0] / childrenNumber,
+      bucketHeight: options.view.size[1] / childrenNumber,
       labels: options.labels,
-      childrenNumber: 6,
+      childrenNumber: 10,
       view: options.view,
       verticalLayout: options.verticalLayout,
       providers: {
@@ -83,7 +86,10 @@ export class BarAxisChart {
       horizonRangeLayout: options.horizonRangeLayout,
       displayRangeLabels: options.displayRangeLabels,
       verticalRangeLayout: options.verticalRangeLayout,
-      resizeWithWindow: true
+      resizeWithWindow: true,
+      onMainLabelInstance: (label: LabelInstance) => {
+        label.color = [label.color[0], label.color[1], label.color[2], 1];
+      }
     })
   }
 

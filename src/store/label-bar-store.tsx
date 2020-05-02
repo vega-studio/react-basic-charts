@@ -58,7 +58,7 @@ export class LabelBarStore extends BasicBarStore {
 
         this.providers.bars.add(bar);
       } else {
-        const barHeight = this.generateData(index);
+        const barHeight = 30;
         const color: Color = [Math.random(), Math.random(), Math.random(), barAlpha];
 
         const bar = new EdgeInstance({

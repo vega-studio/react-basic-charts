@@ -73,7 +73,7 @@ export abstract class BasicBarStore {
     this.unitWidth = this.view.size[0] / this.unitNumber;
     this.unitHeight = this.view.size[1] / this.unitNumber;
     this.generateIntervalLengths()
-    // this.initMask();
+    this.initMask();
     this.updateInterval();
     this.layout();
 
