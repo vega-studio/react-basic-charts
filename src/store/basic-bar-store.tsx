@@ -150,6 +150,8 @@ export abstract class BasicBarStore {
   }
 
   updateMask() {
+    console.warn("Basic update mask");
+
     const curScale = this.transformScale();
     this.mask1.position = this.verticalLayout ?
       [this.view.origin[0], this.view.origin[1]] :
@@ -274,6 +276,7 @@ export abstract class BasicBarStore {
 
     this.removeAll();
     this.initMetrics();
+    this.updateInterval();
     this.updateMask();
     this.layout();
   }

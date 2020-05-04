@@ -184,7 +184,7 @@ async function start() {
     data: datas,
     barShrink: 0.9,
     view: {
-      origin: [300, 900],
+      origin: [300, 1100],
       size: [1000, 300]
     },
     labelFont: "rest",

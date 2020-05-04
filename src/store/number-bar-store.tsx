@@ -98,6 +98,8 @@ export class NumberBarStore extends BasicBarStore {
     const interval = this.intervalLengths[this.scaleLevel];
     const intWidth = interval * this.unitWidth;
 
+    console.warn("Number bar update mask", intWidth);
+
     this.mask1.position = this.verticalLayout ?
       [this.view.origin[0], this.view.origin[1]] :
       [this.view.origin[0] - intWidth * curScale, 0];
@@ -628,4 +630,22 @@ export class NumberBarStore extends BasicBarStore {
 
     this.clearRange(start, end);
   }
+
+  removeAll() {
+    const levelMap = this.recMap.get(this.scaleLevel);
+
+    if (levelMap) {
+      const indices = this.getIndices(this.indexRange[0], this.indexRange[1], this.scaleLevel);
+      for (let i = 0; i < indices.length; i++) {
+        const index = indices[i];
+        if (levelMap.has(index)) {
+          const rec = levelMap.get(i);
+          this.providers.bars.remove(rec);
+        }
+      }
+
+    }
+  }
+
+
 }
