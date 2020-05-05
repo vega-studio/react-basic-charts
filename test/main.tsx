@@ -160,7 +160,7 @@ async function start() {
   const surface = await makeSurface(container);
 
   barAxis = new NumberBarAxisChart({
-    numberRange: [1, 1000],
+    numberRange: [1, 994],
     numberGap: 1,
     barShrink: 0.9,
     view: {

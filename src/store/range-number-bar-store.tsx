@@ -21,14 +21,14 @@ function generateRandom(sum: number, count: number) {
   return rands;
 }
 
-export interface INumberBarStoreOptions extends IBasicBarStoreOptions {
+export interface IRangeNumberBarStoreOptions extends IBasicBarStoreOptions {
   /** Sets the number range to show in the axis */
   numberRange: Vec2;
   /** Sets the difference between every number in the axis */
   numberGap?: number;
 }
 
-export class NumberBarStore extends BasicBarStore {
+export class RangeNumberBarStore extends BasicBarStore {
   private numberRange: Vec2;
   private numberGap: number;
 
@@ -37,7 +37,7 @@ export class NumberBarStore extends BasicBarStore {
   recMap: Map<number, Map<number, EdgeInstance>>;
   dataMap: Map<number, Map<number, number>>;
 
-  constructor(options: INumberBarStoreOptions) {
+  constructor(options: IRangeNumberBarStoreOptions) {
     super(options);
 
     this.recMap = new Map();
@@ -54,17 +54,15 @@ export class NumberBarStore extends BasicBarStore {
 
   init() {
     this.initMetrics();
-
     this.indexRange = [0, this.unitNumber - 1];
     this.unitWidth = this.view.size[0] / this.unitNumber;
     this.unitHeight = this.view.size[1] / this.unitNumber;
 
     this.generateIntervalLengths()
-    this.initMask();
     this.updateInterval();
-
+    this.initMask();
     this.maxLevel = this.scaleLevel;
-    this.layoutRegular();
+    this.layout();
   }
 
   initMask() {
@@ -97,8 +95,6 @@ export class NumberBarStore extends BasicBarStore {
     const curScale = this.transformScale();
     const interval = this.intervalLengths[this.scaleLevel];
     const intWidth = interval * this.unitWidth;
-
-    console.warn("Number bar update mask", intWidth);
 
     this.mask1.position = this.verticalLayout ?
       [this.view.origin[0], this.view.origin[1]] :
@@ -165,44 +161,6 @@ export class NumberBarStore extends BasicBarStore {
     }
   }
 
-  animate(rec: EdgeInstance, loc: number, thickness: number, height: number, scale: number) {
-    const newStart: Vec2 = [loc, this.view.origin[1]];
-    const newEnd: Vec2 = [loc, this.view.origin[1] - height];
-    const newThickness = thickness;
-
-    const oldStart = rec.start;
-    const oldEnd = rec.end;
-    const oldThickness = rec.thickness[0];
-
-    scale = Math.min(Math.max(scale, 0), 1)
-
-    /*const intervalId = setInterval(() => {
-      step++;
-
-      rec.start = [
-        oldStart[0] + step * (newStart[0] - oldStart[0]) / 100,
-        oldStart[1] + step * (newStart[1] - oldStart[1]) / 100
-      ];
-      rec.end = [
-        oldEnd[0] + step * (newEnd[0] - oldEnd[0]) / 100,
-        oldEnd[1] + step * (newEnd[1] - oldEnd[1]) / 100
-      ];
-      rec.setEdgeThickness(oldThickness + step * (newThickness - oldThickness) / 100);
-
-      if (step >= 100) clearInterval(intervalId);
-    }, 10)*/
-
-    rec.start = this.getLocation(oldStart, newStart, scale);
-    rec.end = this.getLocation(oldEnd, newEnd, scale);
-    rec.setEdgeThickness(this.getThickness(oldThickness, newThickness, scale));
-
-    /*rec.end = [
-      oldEnd[0] + scale * (newEnd[0] - oldEnd[0]) / 100,
-      oldEnd[1] + scale * (newEnd[1] - oldEnd[1]) / 100
-    ];*/
-    // rec.setEdgeThickness(oldThickness + scale * (newThickness - oldThickness) / 100);
-  }
-
   getAlpha() {
     const interval = this.intervalLengths[this.scaleLevel];
     const curScale = this.transformScale();
@@ -266,103 +224,42 @@ export class NumberBarStore extends BasicBarStore {
     return ot + s * (nt - ot);
   }
 
-  layout() {
-    this.layoutBars();
-  }
-
-  layoutBar(bar: EdgeInstance) {
-    const interval = this.intervalLengths[this.scaleLevel];
+  getBarMetrics(pos: number, width: number) {
     const curScale = this.transformScale();
+    const recWidth = width * this.barShrinkFactor;
 
-    if (this.scaleLevel === this.maxLevel) {
-      const lowerInterval = this.intervalLengths[this.scaleLevel - 1];
-      const higherScale = this.maxBarWidth / (lowerInterval * this.unitWidth);
-      const lowerScale = 0.9 * higherScale; // this.maxBarWidth / (interval * this.unitWidth);
-      const alphaScale = Math.min(Math.max(curScale, lowerScale), higherScale);
-      const alpha = 1 - (alphaScale - lowerScale) / (higherScale - lowerScale);
-      return alpha;
-    } else if (this.scaleLevel === 0) {
-      const lowerScale = this.maxBarWidth / (interval * this.unitWidth);
-      const higherScale = 1.1 * lowerScale;
-      const alphaScale = Math.min(Math.max(curScale, lowerScale), higherScale);
-      const alpha = (alphaScale - lowerScale) / (higherScale - lowerScale);
-      return alpha;
+    if (this.verticalLayout) {
+      const upEdge = pos - width * curScale * 0.5;
+      const downEdge = pos + width * curScale * 0.5;
+      const upBound = this.view.origin[1] - this.view.size[1] * curScale - this.offset;
+
+      const posY = upEdge < upBound ?
+        (downEdge + (upBound - downEdge) / 2) : pos;
+      const thickness = upEdge < upBound ?
+        ((downEdge - upBound) * this.barShrinkFactor) : recWidth * curScale;
+
+      return {
+        pos: posY,
+        thickness
+      }
     } else {
-      const lowerInterval = this.intervalLengths[this.scaleLevel - 1];
-      const higherScale = this.maxBarWidth / (lowerInterval * this.unitWidth);
-      const lowerScale = this.maxBarWidth / (interval * this.unitWidth);
-      const scaleOffset = (higherScale - lowerScale) / 5;
-      // part1
-      if (curScale >= lowerScale && curScale <= lowerScale + scaleOffset) {
-        return (curScale - lowerScale) / scaleOffset;
-      } else if (curScale >= higherScale - scaleOffset && curScale <= higherScale) {
-        return (higherScale - curScale) / scaleOffset;
-      }
+      const rightEdge = pos + width * curScale * 0.5;
+      const leftEdge = pos - width * curScale * 0.5;
+      const rightBound = this.view.origin[0] + this.view.size[0] * curScale + this.offset;
 
-      return 1;
-    }
-  }
+      const posX = rightEdge > rightBound ?
+        (leftEdge + (rightBound - leftEdge) / 2) : pos;
+      const thickness = rightEdge > rightBound ?
+        ((rightBound - leftEdge) * this.barShrinkFactor) : recWidth * curScale;
 
-  layoutRegular() {
-    const curScale = this.transformScale();
-    const origin = this.view.origin;
-    const interval = this.intervalLengths[this.scaleLevel];
-    const indices = this.getIndices(this.indexRange[0], this.indexRange[1], this.scaleLevel);
-    const unit = (this.verticalLayout ? this.unitHeight : this.unitWidth);
-
-    const intWidth = unit * interval;// * curScale;
-    const recWidth = intWidth * this.barShrinkFactor;// * curScale;
-
-    if (!this.recMap.has(this.scaleLevel)) {
-      this.recMap.set(this.scaleLevel, new Map<number, EdgeInstance>());
-    }
-
-    const levelMap = this.recMap.get(this.scaleLevel);
-
-    const alpha = this.getAlpha();
-
-    for (let i = 0; i < indices.length; i++) {
-      const index = indices[i];
-      const bar = levelMap.get(index);
-      const barHeight = this.getData(this.scaleLevel, index);
-
-      if (bar) {
-        const color: Color = [bar.startColor[0], bar.startColor[1], bar.startColor[2], alpha];
-
-        bar.start = this.verticalLayout ?
-          [origin[0], origin[1] - (index) * intWidth - this.offset] :
-          [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, origin[1]];
-
-        bar.end = this.verticalLayout ?
-          [origin[0] + barHeight, origin[1] - (index) * intWidth - this.offset] :
-          [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, bar.end[1]];
-
-        bar.setColor(color);
-        bar.setEdgeThickness(recWidth * curScale);
-
-        this.providers.bars.add(bar);
-      } else {
-        const color: Color = [Math.random(), Math.random(), Math.random(), alpha];
-
-        const bar = new EdgeInstance({
-          start: this.verticalLayout ?
-            [origin[0], origin[1] - (index) * intWidth - this.offset] :
-            [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, origin[1]],
-          end: this.verticalLayout ?
-            [origin[0] + barHeight, origin[1] - (index) * intWidth - this.offset] :
-            [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, origin[1] - barHeight],
-          thickness: [recWidth * curScale, recWidth * curScale],
-          startColor: color,
-          endColor: color,
-        })
-
-        this.providers.bars.add(bar);
-        levelMap.set(index, bar);
+      return {
+        pos: posX,
+        thickness
       }
     }
   }
 
-  layoutBars() {
+  layout() {
     const indices = this.getIndices(this.indexRange[0], this.indexRange[1], this.scaleLevel);
     const unit = (this.verticalLayout ? this.unitHeight : this.unitWidth);
     const curScale = this.transformScale();
@@ -370,7 +267,6 @@ export class NumberBarStore extends BasicBarStore {
     const intWidth = unit * interval;// * curScale;
     const recWidth = intWidth * this.barShrinkFactor;// * curScale;
     const origin = this.view.origin;
-
 
     if (!this.recMap.has(this.scaleLevel)) {
       this.recMap.set(this.scaleLevel, new Map<number, EdgeInstance>());
@@ -381,27 +277,39 @@ export class NumberBarStore extends BasicBarStore {
     const alpha = this.getAlpha();
     const positionScale = this.getLocationScale();
 
-    console.warn("position scale", positionScale);
-
     if (this.scaleLevel === this.maxLevel) {
       for (let i = 0; i < indices.length; i++) {
         const index = indices[i];
         const bar = levelMap.get(index);
         const barHeight = this.getData(this.scaleLevel, index);
 
+        let pos = this.verticalLayout ?
+          origin[1] - (index + 0.5) * intWidth * curScale - this.offset :
+          origin[0] + (index + 0.5) * intWidth * curScale + this.offset;
+        const barMetrics = this.getBarMetrics(pos, intWidth);
+        pos = barMetrics.pos;
+
+
+        const thickness = barMetrics.thickness;
+
         if (bar) {
-          const color: Color = [bar.startColor[0], bar.startColor[1], bar.startColor[2], alpha];
+          const color: Color = [
+            bar.startColor[0],
+            bar.startColor[1],
+            bar.startColor[2],
+            alpha
+          ];
 
           bar.start = this.verticalLayout ?
-            [origin[0], origin[1] - (index + 0.5) * intWidth * curScale - this.offset] :
-            [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, origin[1]];
+            [origin[0], pos] :
+            [pos, bar.start[1]];
 
           bar.end = this.verticalLayout ?
-            [origin[0] + barHeight, origin[1] - (index + 0.5) * intWidth * curScale - this.offset] :
-            [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, bar.end[1]];
+            [origin[0] + barHeight, pos] :
+            [pos, bar.end[1]];
 
           bar.setColor(color);
-          bar.setEdgeThickness(recWidth * curScale);
+          bar.setEdgeThickness(thickness);
 
           this.providers.bars.add(bar);
         } else {
@@ -410,13 +318,13 @@ export class NumberBarStore extends BasicBarStore {
           const bar = new EdgeInstance({
             start:
               this.verticalLayout ?
-                [origin[0], origin[1] - (index + 0.5) * intWidth * curScale - this.offset] :
-                [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, origin[1]],
+                [origin[0], pos] :
+                [pos, origin[1]],
             end:
               this.verticalLayout ?
-                [origin[0] + barHeight, origin[1] - (index + 0.5) * intWidth * curScale - this.offset] :
-                [origin[0] + (index + 0.5) * intWidth * curScale + this.offset, origin[1]],
-            thickness: [recWidth * curScale, recWidth * curScale],
+                [origin[0] + barHeight, pos] :
+                [pos, origin[1] - barHeight],
+            thickness: [thickness, thickness],
             startColor: color,
             endColor: color,
           })
@@ -430,24 +338,44 @@ export class NumberBarStore extends BasicBarStore {
         const index = indices[i];
 
         const j = index - Math.floor(index / this.childrenNumber) * this.childrenNumber;
+
         const parentIndex = Math.floor(index / this.childrenNumber);
         const parentInterval = this.intervalLengths[this.scaleLevel + 1];
         const parentIntWidth = parentInterval * unit;
-        const parentPosX = this.view.origin[0] + (parentIndex + 0.5) * parentIntWidth * curScale + this.offset;
-        const parentPosY = this.view.origin[1] - (parentIndex + 0.5) * parentIntWidth * curScale - this.offset
+
+        let parentPos = this.verticalLayout ?
+          this.view.origin[1] - (parentIndex + 0.5) * parentIntWidth * curScale - this.offset :
+          this.view.origin[0] + (parentIndex + 0.5) * parentIntWidth * curScale + this.offset;
+
+        const parentBarMetrics = this.getBarMetrics(parentPos, parentIntWidth);
+        parentPos = parentBarMetrics.pos;
+        const parentWidth = parentBarMetrics.thickness;
         const parentBarHeight = this.getData(this.scaleLevel + 1, parentIndex);
 
-        const startX = parentPosX - parentIntWidth * this.barShrinkFactor * curScale * 0.5;
-        const startY = parentPosY + parentIntWidth * this.barShrinkFactor * curScale * 0.5;
-
+        const start = this.verticalLayout ?
+          parentPos + parentWidth * this.barShrinkFactor * 0.5 :
+          parentPos - parentWidth * this.barShrinkFactor * 0.5;
         let bar = levelMap.get(index);
+
         const barHeight = this.getData(this.scaleLevel, index);
 
-        const sx = startX + (j + 0.5) * recWidth * curScale;
-        const ex = this.view.origin[0] + (index + 0.5) * intWidth * curScale + this.offset;
+        const childrenNumber =
+          Math.ceil(parentWidth / (intWidth * this.barShrinkFactor * curScale));
+        const startWidth = parentWidth / childrenNumber;
 
-        const sy = startY - (j + 0.5) * recWidth * curScale;
-        const ey = this.view.origin[1] - (index + 0.5) * intWidth * curScale - this.offset;
+        const pos = this.verticalLayout ?
+          this.view.origin[1] - (index + 0.5) * intWidth * curScale - this.offset :
+          this.view.origin[0] + (index + 0.5) * intWidth * curScale + this.offset;
+
+        const metrics = this.getBarMetrics(pos, intWidth);
+        const endWidth = metrics.thickness;
+
+        const sx = start + (j + 0.5) * startWidth;
+        const ex = metrics.pos;
+        // const ex = this.view.origin[0] + (index + 0.5) * intWidth * curScale + this.offset;
+
+        const sy = start - (j + 0.5) * startWidth;
+        const ey = metrics.pos;
 
         const startLoc = this.verticalLayout ?
           this.getLocation(
@@ -473,28 +401,38 @@ export class NumberBarStore extends BasicBarStore {
             positionScale
           )
 
-        // const thickness = this.getThickness()
+        const thickness = this.verticalLayout ?
+          this.getThickness(
+            startWidth,
+            endWidth * this.barShrinkFactor,
+            positionScale
+          ) :
+          this.getThickness(
+            startWidth,
+            endWidth * this.barShrinkFactor,
+            positionScale
+          )
 
         if (bar) {
           const color: Color = [
             bar.startColor[0],
             bar.startColor[1],
             bar.startColor[2],
-            alpha
+            1
           ];
 
           bar.start = startLoc;
           bar.end = endLoc;
           bar.setColor(color);
-          bar.setEdgeThickness(recWidth * curScale);
+          bar.setEdgeThickness(thickness);
           this.providers.bars.add(bar);
         } else {
-          const color: Color = [Math.random(), Math.random(), Math.random(), alpha];
+          const color: Color = [Math.random(), Math.random(), Math.random(), 1];
 
           bar = new EdgeInstance({
             start: startLoc,
             end: endLoc,
-            thickness: [recWidth * curScale, recWidth * curScale],
+            thickness: [thickness, thickness],
             startColor: color,
             endColor: color
           })
@@ -502,71 +440,6 @@ export class NumberBarStore extends BasicBarStore {
           this.providers.bars.add(bar);
           levelMap.set(index, bar);
         }
-      }
-    }
-  }
-
-  lauyoutOnLevelChange() {
-    const indices = this.getIndices(this.indexRange[0], this.indexRange[1], this.scaleLevel);
-    const unit = (this.verticalLayout ? this.unitHeight : this.unitWidth);
-    const curScale = this.transformScale();
-    const interval = this.intervalLengths[this.scaleLevel];
-    const intWidth = unit * interval;// * curScale;
-    const recWidth = intWidth * this.barShrinkFactor;// * curScale;
-
-
-    if (!this.recMap.has(this.scaleLevel)) {
-      this.recMap.set(this.scaleLevel, new Map<number, EdgeInstance>());
-    }
-
-    const levelMap = this.recMap.get(this.scaleLevel);
-    const alpha = this.getAlpha();
-
-    if (this.scaleLevel > this.preScaleLevel) {
-      console.warn("curLevel", this.scaleLevel, "preLevel", this.preScaleLevel);
-    } else if (this.scaleLevel < this.preScaleLevel) {
-
-      for (let i = 0; i < indices.length; i++) {
-        const index = indices[i];
-
-        const j = index - Math.floor(index / this.childrenNumber) * this.childrenNumber;
-        const parentIndex = Math.floor(index / this.childrenNumber);
-        const parentInterval = this.intervalLengths[this.preScaleLevel];
-        const parentIntWidth = parentInterval * unit;
-        const parentPosX = this.view.origin[0] + (parentIndex + 0.5) * parentIntWidth * curScale + this.offset;
-        const parentBarHeight = this.getData(this.preScaleLevel, parentIndex);
-
-        const startX = parentPosX - parentIntWidth * this.barShrinkFactor * curScale * 0.5;
-
-        let bar = levelMap.get(index);
-
-        if (bar) {
-          const color: Color = [bar.startColor[0], bar.startColor[1], bar.startColor[2], alpha];
-
-          bar.start = [startX + (j + 0.5) * recWidth * curScale, this.view.origin[1]];
-          bar.end = [startX + (j + 0.5) * recWidth * curScale, this.view.origin[1] - parentBarHeight];
-          bar.setColor(color);
-          bar.setEdgeThickness(recWidth * curScale);
-          this.providers.bars.add(bar);
-
-        } else {
-          const color: Color = [Math.random(), Math.random(), Math.random(), alpha];
-
-          bar = new EdgeInstance({
-            start: [startX + (j + 0.5) * recWidth * curScale, this.view.origin[1]],
-            end: [startX + (j + 0.5) * recWidth * curScale, this.view.origin[1] - parentBarHeight],
-            thickness: [recWidth * curScale, recWidth * curScale],
-            startColor: color,
-            endColor: color
-          })
-
-          this.providers.bars.add(bar);
-          levelMap.set(index, bar);
-        }
-
-        const height = this.getData(this.scaleLevel, index);
-
-        //this.animate(bar, this.view.origin[0] + (index + 0.5) * intWidth * curScale + this.offset, recWidth * curScale, height);
       }
     }
   }
@@ -624,8 +497,6 @@ export class NumberBarStore extends BasicBarStore {
       }
     }
 
-    // this.removeBars(this.indexRange[0], this.indexRange[1], this.preScaleLevel, this.scaleLevel - 1);
-
     this.indexRange = [start, end];
 
     this.clearRange(start, end);
@@ -647,5 +518,15 @@ export class NumberBarStore extends BasicBarStore {
     }
   }
 
+  changeAxis() {
+    this.verticalLayout = !this.verticalLayout;
+    this.indexRange = [0, this.unitNumber - 1];
+    this.initMetrics();
+    this.removeAll();
+    this.scaleLevel = 0;
+    this.updateInterval();
+    this.updateMask();
+    this.layout();
+  }
 
 }
