@@ -3,6 +3,7 @@ import { BarAxisChart } from "src/bar-axis-chart";
 import * as dat from "dat.gui";
 import moment from "moment";
 import { NumberBarAxisChart } from "src/number-bar-axis-chart";
+import { FixedLabelAxis } from "deltav-axis-2d";
 
 let barAxis: NumberBarAxisChart;
 
@@ -38,6 +39,8 @@ async function makeSurface(container: HTMLElement) {
       masks2: new InstanceProvider<RectangleInstance>(),
       bars2: new InstanceProvider<EdgeInstance>(),
       labels2: new InstanceProvider<LabelInstance>(),
+      ticks3: new InstanceProvider<EdgeInstance>(),
+      labels3: new InstanceProvider<LabelInstance>()
     },
     cameras: {
       main: new Camera2D(),
@@ -121,7 +124,15 @@ async function makeSurface(container: HTMLElement) {
           labels2: createLayer(LabelLayer, {
             data: providers.labels2,
             resourceKey: resources.font.key
-          })
+          }),
+          tick3: createLayer(EdgeLayer, {
+            data: providers.ticks3,
+            type: EdgeType.LINE,
+          }),
+          labels3: createLayer(LabelLayer, {
+            data: providers.labels3,
+            resourceKey: resources.font.key
+          }),
         }
       }
     })
@@ -177,6 +188,19 @@ async function start() {
       labels: surface.providers.labels
     },
     verticalLayout: false
+  })
+
+  const fixAxis = new FixedLabelAxis({
+    labels: ["0", "50", "100", "150", "200", "250", "300"],
+    view: {
+      origin: [300, 600],
+      size: [1000, 300]
+    },
+    providers: {
+      ticks: surface.providers.ticks3,
+      labels: surface.providers.labels3
+    },
+    verticalLayout: true
   })
 
   labelAxis = new BarAxisChart({
